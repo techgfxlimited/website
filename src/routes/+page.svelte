@@ -1,5 +1,6 @@
 <script>
 	import { onMount } from 'svelte';
+	import posthog from 'posthog-js'
 	let mounted = false;
 	let scrollY;
 	let headerVisible = false;
@@ -77,7 +78,8 @@
 		</div>
 		<h1>Transform Your Business with Full-Cycle Tech Expertise</h1>
 		<p>From concept to deployment, we deliver scalable digital solutions.</p>
-		<a href="#contact" class="btn btn-primary">Schedule a Free Consultation</a>
+		<a on:click={() => posthog.capture('contact_btn_clicked')} href="#contact" class="btn btn-primary">Schedule a Free Consultation</a>
+
 	</div>
 </section>
 
