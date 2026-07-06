@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { gsap, revealLines, revealOnScroll, magnetic, reducedMotion, EASE } from '$lib/motion.js';
 	import { services } from '$lib/data/services.js';
+	import SEO from '$lib/components/SEO.svelte';
 
 	let { data } = $props();
 	const service = $derived(data.service);
@@ -33,10 +34,12 @@
 	});
 </script>
 
-<svelte:head>
-	<title>{service.name} — TechGFX</title>
-	<meta name="description" content={service.tagline} />
-</svelte:head>
+<SEO
+	title={service.name}
+	description={service.tagline}
+	url={`https://techgfxlimited.com/services/${service.slug}/`}
+	keywords={`techgfx, ${service.short.toLowerCase()}, ${service.name.toLowerCase()}, UK digital agency`}
+/>
 
 <!-- ============ HERO (dark) ============ -->
 <section class="hero section">

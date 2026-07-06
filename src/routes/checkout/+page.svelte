@@ -1,6 +1,7 @@
 <script>
 	import { onMount } from 'svelte';
 	import { services } from '$lib/data/services.js';
+	import SEO from '$lib/components/SEO.svelte';
 	import { gsap, revealLines, revealOnScroll, magnetic, reducedMotion, EASE } from '$lib/motion.js';
 
 	// ponytail: swap for a real Stripe Payment Link before going live
@@ -42,13 +43,11 @@
 	});
 </script>
 
-<svelte:head>
-	<title>Checkout — TechGFX</title>
-	<meta
-		name="description"
-		content="Review your selected services and reserve your project with a deposit or book a scoping call."
-	/>
-</svelte:head>
+<SEO
+	title="Checkout"
+	description="Review your selected services and reserve your project with a deposit or book a scoping call."
+	url="https://techgfxlimited.com/checkout/"
+/>
 
 <section class="hero section">
 	<div class="container hero-grid">

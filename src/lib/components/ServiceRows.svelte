@@ -82,10 +82,12 @@
 		if (!root || !m || !inner) return;
 		const r = root.getBoundingClientRect();
 		const edge = closestEdge(ev.clientX - r.left, ev.clientY - r.top, r.width, r.height);
+		// inner returns to its rest offset (0) so it rides out with m instead of
+		// counter-cancelling it — the opposite-offset pair only belongs to enter().
 		gsap
 			.timeline({ defaults })
 			.to(m, { y: edge === 'top' ? '-101%' : '101%' }, 0)
-			.to(inner, { y: edge === 'top' ? '101%' : '-101%' }, 0);
+			.to(inner, { y: '0%' }, 0);
 	}
 </script>
 

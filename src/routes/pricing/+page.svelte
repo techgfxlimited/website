@@ -2,6 +2,7 @@
 	import { onMount, untrack } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { services } from '$lib/data/services.js';
+	import SEO from '$lib/components/SEO.svelte';
 	import { gsap as motionGsap, revealLines, revealOnScroll, magnetic, reducedMotion, EASE } from '$lib/motion.js';
 
 	/** @type {Set<string>} */
@@ -73,13 +74,11 @@
 	});
 </script>
 
-<svelte:head>
-	<title>Pricing & Quote Builder — TechGFX</title>
-	<meta
-		name="description"
-		content="Select the services you need and get an instant indicative quote from TechGFX."
-	/>
-</svelte:head>
+<SEO
+	title="Pricing & Quote Builder"
+	description="Select the services you need and get an instant indicative quote from TechGFX."
+	url="https://techgfxlimited.com/pricing/"
+/>
 
 <section class="hero section">
 	<div class="container hero-grid">
