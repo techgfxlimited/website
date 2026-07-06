@@ -1,310 +1,262 @@
 <script>
 	import { onMount } from 'svelte';
+	import { gsap, revealLines, revealOnScroll, magnetic, reducedMotion, EASE } from '$lib/motion.js';
+	import { services } from '$lib/data/services.js';
 
 	let { data } = $props();
 	const service = $derived(data.service);
 	const otherServices = $derived(data.otherServices);
+	const index = $derived(services.findIndex((s) => s.slug === service.slug));
+
+	/** @param {string} name */
+	function splitLast(name) {
+		const words = name.trim().split(' ');
+		const last = words.pop();
+		return { rest: words.join(' '), last };
+	}
 
 	/** @type {HTMLElement} */
-	let heroEl;
+	let heroH1;
 	/** @type {HTMLElement} */
-	let listEl;
+	let deliverablesList;
 
 	onMount(() => {
-		/** @type {any} */
-		let ctx;
+		if (reducedMotion()) return;
 
-		(async () => {
-			const gsap = (await import('gsap')).default;
-			const { ScrollTrigger } = await import('gsap/ScrollTrigger');
-			gsap.registerPlugin(ScrollTrigger);
+		const tl = gsap.timeline({ delay: 0.1 });
+		tl.from('.hero .label', { opacity: 0, y: 16, duration: 0.8, ease: EASE }, 0);
+		revealLines(heroH1, { delay: 0.15, stagger: 0.1 });
+		tl.from('.hero-foot > *', { opacity: 0, y: 22, duration: 0.9, stagger: 0.1, ease: EASE }, 0.5);
 
-			const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-			ctx = gsap.context(() => {
-				gsap.from('.hero-anim', {
-					opacity: 0,
-					y: reduceMotion ? 0 : 30,
-					duration: reduceMotion ? 0.01 : 0.8,
-					stagger: reduceMotion ? 0 : 0.1,
-					ease: 'power3.out'
-				});
-
-				gsap.from('.deliverable-item', {
-					scrollTrigger: {
-						trigger: listEl,
-						start: 'top 85%',
-						// complete on leave so a fast scroll past never strands items invisible
-						toggleActions: 'play complete play complete'
-					},
-					opacity: 0,
-					x: reduceMotion ? 0 : -20,
-					duration: reduceMotion ? 0.01 : 0.5,
-					stagger: reduceMotion ? 0 : 0.08,
-					ease: 'power2.out'
-				});
-
-				gsap.from('.other-service-card', {
-					scrollTrigger: {
-						trigger: '.other-services-grid',
-						start: 'top 90%',
-						toggleActions: 'play complete play complete'
-					},
-					opacity: 0,
-					y: reduceMotion ? 0 : 20,
-					duration: reduceMotion ? 0.01 : 0.5,
-					stagger: reduceMotion ? 0 : 0.06,
-					ease: 'power2.out'
-				});
-			}); // unscoped: selectors live outside the hero element
-		})();
-
-		return () => {
-			if (ctx) ctx.revert();
-		};
+		revealOnScroll('.deliverable-row', deliverablesList, { y: 30, stagger: 0.07 });
+		revealOnScroll('.cross-row', '.cross-sell', { y: 26, stagger: 0.06 });
 	});
 </script>
 
 <svelte:head>
-	<title>{service.name} — TechGFX Technologies</title>
-	<meta name="description" content={service.description} />
+	<title>{service.name} — TechGFX</title>
+	<meta name="description" content={service.tagline} />
 </svelte:head>
 
-<section class="service-hero" bind:this={heroEl}>
-	<div class="container">
-		<a href="/#services" class="back-link hero-anim">&larr; All services</a>
-
-		<div class="hero-anim service-icon">{service.icon}</div>
-		<h1 class="hero-anim">{service.name}</h1>
-		<p class="tagline hero-anim">{service.tagline}</p>
-		<div class="price-pill hero-anim">
-			{service.priceNote} <strong>£{service.price.toLocaleString()}</strong>
-		</div>
-
-		<p class="description hero-anim">{service.description}</p>
-
-		<div class="hero-anim cta-row">
-			<a href="/pricing/" class="btn btn-primary">Add to quote</a>
-			<a href="/contact/" class="btn btn-secondary">Talk to us</a>
-		</div>
-	</div>
-</section>
-
-<section class="section deliverables-section">
-	<div class="container">
-		<div class="deliverables-grid">
-			<div class="deliverables-col">
-				<h2>What's included</h2>
-				<ul class="deliverables-list" bind:this={listEl}>
-					{#each service.deliverables as item}
-						<li class="deliverable-item glass">
-							<span class="check">&#10003;</span>
-							{item}
-						</li>
-					{/each}
-				</ul>
-			</div>
-
-			<div class="timeline-col glass">
-				<h3>Timeline</h3>
-				<p class="timeline-value">{service.timeline}</p>
-				<p class="timeline-note">
-					Final scope and delivery dates are confirmed after a short discovery call.
+<!-- ============ HERO (dark) ============ -->
+<section class="hero section">
+	<div class="container hero-grid">
+		<p class="label">Service — {String(index + 1).padStart(2, '0')}</p>
+		<h1 class="h2" bind:this={heroH1}>
+			{#if splitLast(service.name).rest}
+				{splitLast(service.name).rest}
+				<span class="serif-accent">{splitLast(service.name).last}</span>
+			{:else}
+				<span class="serif-accent">{splitLast(service.name).last}</span>
+			{/if}
+		</h1>
+		<div class="hero-foot">
+			<div class="hero-foot-text">
+				<p class="lead">{service.tagline}</p>
+				<p class="price-line">
+					from £{service.price.toLocaleString()} — indicative starting price
 				</p>
-				<a href="/pricing/" class="btn btn-primary full-width">Build your quote</a>
+			</div>
+			<div class="hero-cta">
+				<a href={`/pricing/?add=${service.slug}`} class="btn btn-solid" use:magnetic>
+					Add to a quote <span class="arrow">→</span>
+				</a>
+				<a href="/contact/" class="btn btn-ghost" use:magnetic>Talk to us</a>
 			</div>
 		</div>
 	</div>
 </section>
 
-<section class="section other-services-section">
+<!-- ============ WHAT YOU GET (light) ============ -->
+<section class="section chapter" data-theme="light">
 	<div class="container">
-		<h2>Other services</h2>
-		<div class="other-services-grid">
-			{#each otherServices as other}
-				<a href={`/services/${other.slug}/`} class="other-service-card glass">
-					<span class="other-icon">{other.icon}</span>
-					<span class="other-name">{other.name}</span>
-				</a>
+		<p class="label">What you get</p>
+		<ul class="deliverables-list" bind:this={deliverablesList}>
+			{#each service.deliverables as item, i (item)}
+				<li class="deliverable-row">
+					<span class="d-idx">{String(i + 1).padStart(2, '0')}</span>
+					<span class="d-text">{item}</span>
+				</li>
 			{/each}
+		</ul>
+		<p class="timeline-line">Typical timeline — {service.timeline}</p>
+	</div>
+</section>
+
+<!-- ============ DESCRIPTION + CROSS-SELL (dark) ============ -->
+<section class="section chapter">
+	<div class="container">
+		<p class="description">{service.description}</p>
+
+		<div class="cross-sell">
+			<p class="label">Other capabilities</p>
+			<ul class="cross-list">
+				{#each otherServices as other (other.slug)}
+					<li class="cross-row">
+						<a href={`/services/${other.slug}/`} class="cross-link">
+							<span class="cross-name">{other.short}</span>
+							<span class="cross-price">from £{other.price.toLocaleString()}</span>
+							<span class="cross-arrow" aria-hidden="true">→</span>
+						</a>
+					</li>
+				{/each}
+			</ul>
 		</div>
 	</div>
 </section>
 
 <style>
-	.service-hero {
-		padding: 9rem 0 4rem;
-		max-width: 800px;
-		margin: 0 auto;
+	.hero {
+		padding-top: clamp(8rem, 16vh, 11rem);
+		padding-bottom: clamp(4rem, 8vh, 6rem);
 	}
 
-	.service-hero .container {
-		max-width: 800px;
-	}
-
-	.back-link {
-		display: inline-block;
-		color: var(--color-text-muted);
-		text-decoration: none;
-		margin-bottom: 2rem;
-		transition: color 0.3s ease;
-	}
-
-	.back-link:hover {
-		color: var(--color-primary);
-	}
-
-	.service-icon {
-		font-size: 3.5rem;
-		margin-bottom: 1rem;
-	}
-
-	.service-hero h1 {
-		font-size: clamp(2.25rem, 5vw, 3.5rem);
-		margin-bottom: 1rem;
-	}
-
-	.tagline {
-		font-size: 1.25rem;
-		color: var(--color-text-muted);
-		margin-bottom: 1.5rem;
-	}
-
-	.price-pill {
-		display: inline-flex;
-		align-items: center;
-		gap: 0.4rem;
-		padding: 0.6rem 1.25rem;
-		border-radius: var(--radius-full);
-		background: rgba(99, 102, 241, 0.12);
-		color: var(--color-text);
-		font-size: 0.95rem;
-		margin-bottom: 2rem;
-	}
-
-	.price-pill strong {
-		color: var(--color-primary);
-		font-size: 1.1rem;
-	}
-
-	.description {
-		font-size: 1.1rem;
-		margin-bottom: 2rem;
-	}
-
-	.cta-row {
+	.hero-grid {
 		display: flex;
-		gap: 1rem;
+		flex-direction: column;
+		gap: clamp(1.5rem, 3vh, 2.5rem);
+	}
+
+	.hero-foot {
+		display: flex;
+		justify-content: space-between;
+		align-items: flex-end;
+		gap: 2.5rem;
 		flex-wrap: wrap;
 	}
 
-	.deliverables-grid {
-		display: grid;
-		grid-template-columns: 1.4fr 1fr;
-		gap: 3rem;
+	.hero-foot-text {
+		display: flex;
+		flex-direction: column;
+		gap: 1rem;
 	}
 
-	.deliverables-col h2 {
-		font-size: 1.75rem;
-		margin-bottom: 1.5rem;
+	.price-line {
+		font-family: var(--font-mono);
+		font-size: 0.8rem;
+		text-transform: uppercase;
+		letter-spacing: 0.1em;
+		color: var(--fg-60);
 	}
 
+	.hero-cta {
+		display: flex;
+		gap: 0.9rem;
+		flex-wrap: wrap;
+	}
+
+	/* ---------- chapters ---------- */
+	.chapter {
+		padding-block: clamp(5rem, 11vw, 8rem);
+	}
+
+	/* ---------- deliverables ---------- */
 	.deliverables-list {
+		list-style: none;
+		margin: clamp(2rem, 4vw, 3.5rem) 0 0;
+		padding: 0;
+		border-top: 1px solid var(--line);
+	}
+	.deliverable-row {
+		display: grid;
+		grid-template-columns: 3.5rem 1fr;
+		gap: 1.5rem;
+		align-items: baseline;
+		padding-block: clamp(1.4rem, 3vw, 2rem);
+		border-bottom: 1px solid var(--line);
+	}
+	.d-idx {
+		font-family: var(--font-mono);
+		font-size: 0.75rem;
+		color: var(--fg-40);
+	}
+	.d-text {
+		font-size: 1.3rem;
+		letter-spacing: -0.01em;
+		line-height: 1.3;
+	}
+
+	.timeline-line {
+		margin-top: 2rem;
+		font-family: var(--font-mono);
+		font-size: 0.78rem;
+		text-transform: uppercase;
+		letter-spacing: 0.1em;
+		color: var(--fg-60);
+	}
+
+	/* ---------- description ---------- */
+	.description {
+		font-size: 1.35rem;
+		line-height: 1.6;
+		max-width: 30em;
+		color: var(--fg-60);
+	}
+
+	/* ---------- cross-sell ---------- */
+	.cross-sell {
+		margin-top: clamp(4rem, 8vw, 6rem);
+		display: flex;
+		flex-direction: column;
+		gap: 1.5rem;
+	}
+	.cross-list {
 		list-style: none;
 		margin: 0;
 		padding: 0;
-		display: flex;
-		flex-direction: column;
-		gap: 0.85rem;
+		border-top: 1px solid var(--line);
 	}
-
-	.deliverable-item {
-		display: flex;
-		align-items: center;
-		gap: 0.85rem;
-		padding: 1rem 1.25rem;
-		border-radius: var(--radius-md);
-		color: var(--color-text);
+	.cross-row {
+		border-bottom: 1px solid var(--line);
 	}
-
-	.check {
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		width: 24px;
-		height: 24px;
-		border-radius: 50%;
-		background: var(--gradient-primary);
-		color: white;
-		font-size: 0.75rem;
-		flex-shrink: 0;
-	}
-
-	.timeline-col {
-		padding: 2rem;
-		border-radius: var(--radius-lg);
-		height: fit-content;
-	}
-
-	.timeline-col h3 {
-		font-size: 1.2rem;
-		margin-bottom: 1rem;
-	}
-
-	.timeline-value {
-		font-size: 1.25rem;
-		font-weight: 600;
-		color: var(--color-primary);
-		margin-bottom: 0.75rem;
-	}
-
-	.timeline-note {
-		font-size: 0.9rem;
-		margin-bottom: 1.5rem;
-	}
-
-	.full-width {
-		width: 100%;
-	}
-
-	.other-services-section h2 {
-		font-size: 1.75rem;
-		margin-bottom: 2rem;
-	}
-
-	.other-services-grid {
+	.cross-link {
 		display: grid;
-		grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-		gap: 1.25rem;
-	}
-
-	.other-service-card {
-		display: flex;
-		align-items: center;
-		gap: 0.85rem;
-		padding: 1.25rem 1.5rem;
-		border-radius: var(--radius-md);
+		grid-template-columns: 1fr auto 2.5rem;
+		align-items: baseline;
+		gap: 1.5rem;
+		padding-block: clamp(1.4rem, 3vw, 2rem);
 		text-decoration: none;
-		color: var(--color-text);
-		transition: all 0.3s ease;
+		color: var(--fg);
 	}
-
-	.other-service-card:hover {
-		transform: translateY(-4px);
-		border-color: rgba(99, 102, 241, 0.35);
-	}
-
-	.other-icon {
-		font-size: 1.5rem;
-	}
-
-	.other-name {
+	.cross-name {
+		font-size: clamp(1.4rem, 3vw, 2rem);
 		font-weight: 500;
+		letter-spacing: -0.02em;
+		transition: color 0.4s var(--ease-out);
+	}
+	.cross-link:hover .cross-name {
+		color: var(--accent);
+	}
+	.cross-price {
+		font-family: var(--font-mono);
+		font-size: 0.78rem;
+		text-transform: uppercase;
+		letter-spacing: 0.08em;
+		color: var(--fg-60);
+	}
+	.cross-arrow {
+		font-size: 1.3rem;
+		justify-self: end;
+		opacity: 0.35;
+		transform: translateX(-6px);
+		transition:
+			transform 0.45s var(--ease-out),
+			opacity 0.45s var(--ease-out);
+	}
+	.cross-link:hover .cross-arrow {
+		opacity: 1;
+		transform: translateX(0);
 	}
 
-	@media (max-width: 768px) {
-		.deliverables-grid {
-			grid-template-columns: 1fr;
+	@media (max-width: 640px) {
+		.deliverable-row {
+			grid-template-columns: 2.4rem 1fr;
+		}
+		.cross-link {
+			grid-template-columns: 1fr auto;
+		}
+		.cross-arrow {
+			display: none;
 		}
 	}
 </style>

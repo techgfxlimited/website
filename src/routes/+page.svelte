@@ -1,613 +1,501 @@
 <script>
 	import { onMount } from 'svelte';
 	import posthog from 'posthog-js';
+	import LightRays from '$lib/vendor/LightRays.svelte';
+	import ServiceRows from '$lib/components/ServiceRows.svelte';
 	import { services } from '$lib/data/services.js';
 	import { products } from '$lib/data/products.js';
+	import { gsap, revealLines, revealOnScroll, magnetic, countUp, reducedMotion, EASE } from '$lib/motion.js';
 
 	/** @type {HTMLElement} */
 	let heroEl;
-	/** @type {HTMLElement} */
-	let headlineEl;
-	/** @type {HTMLElement} */
-	let sceneWrapEl;
-	/** @type {HTMLImageElement} */
-	let donutEl;
-	/** @type {HTMLElement} */
-	let servicesGridEl;
-	/** @type {HTMLElement} */
-	let workGridEl;
-	/** @type {HTMLElement} */
-	let statsEl;
 
 	const stats = [
-		{ value: 10, suffix: '+', label: 'years experience' },
-		{ value: 50, suffix: '+', label: 'projects delivered' },
-		{ value: 4, suffix: '', label: 'products live' },
-		{ value: 24, suffix: '/7', label: 'support' }
+		{ value: 10, format: /** @param {number} n */ (n) => `${Math.round(n)}+`, label: 'years building for the web' },
+		{ value: 50, format: /** @param {number} n */ (n) => `${Math.round(n)}+`, label: 'projects shipped' },
+		{ value: 4, format: /** @param {number} n */ (n) => String(Math.round(n)).padStart(2, '0'), label: 'products live right now' },
+		{ value: 24, format: /** @param {number} n */ (n) => `${Math.round(n)}/7`, label: 'support cover' }
 	];
 
+	const steps = [
+		{ n: '01', t: 'Scope', d: 'A scoping call and a fixed quote inside a week. No discovery theatre.' },
+		{ n: '02', t: 'Design', d: 'Interface and brand direction in days — iterated with you, not presented at you.' },
+		{ n: '03', t: 'Build', d: 'Production code from week one. You watch it come together on a live URL.' },
+		{ n: '04', t: 'Ship', d: 'Launch, measure, support. We stay on after go-live — our name is on it too.' }
+	];
+
+	const rowItems = services.map((s) => ({
+		href: `/services/${s.slug}/`,
+		name: s.short,
+		price: `from £${s.price.toLocaleString()}`
+	}));
+
 	onMount(() => {
-		/** @type {any} */
-		let ctx;
-		let cleanupMouse = () => {};
+		if (reducedMotion()) return;
 
-		(async () => {
-			const gsap = (await import('gsap')).default;
-			const { ScrollTrigger } = await import('gsap/ScrollTrigger');
-			gsap.registerPlugin(ScrollTrigger);
+		// --- load choreography ---
+		const tl = gsap.timeline({ delay: 0.15 });
+		tl.from('.hero .label', { opacity: 0, y: 16, duration: 0.8, ease: EASE }, 0.1);
+		revealLines('.hero h1', { delay: 0.25, stagger: 0.1 });
+		tl.from('.hero-foot > *', { opacity: 0, y: 24, duration: 0.9, stagger: 0.1, ease: EASE }, 0.7);
+		tl.from('.hero-rays', { opacity: 0, duration: 2, ease: 'power2.out' }, 0.4);
 
-			const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+		// --- scroll chapters ---
+		for (const sel of ['#services', '#work', '#process']) {
+			const head = document.querySelector(`${sel} .section-head`);
+			if (head) revealOnScroll(Array.from(head.children), head, { y: 28, stagger: 0.12 });
+		}
+		revealOnScroll('.service-rows-wrap', '.service-rows-wrap', { y: 40 });
+		revealOnScroll('.product', '.products', { y: 48, stagger: 0.14 });
+		revealOnScroll('.step', '.steps', { y: 36, stagger: 0.1 });
+		revealOnScroll('.cta-inner > *', '.cta-band', { y: 32, stagger: 0.1 });
 
-			ctx = gsap.context(() => {
-				// Hero headline split-word entrance
-				const words = headlineEl.querySelectorAll('.word');
-				gsap.set(words, { yPercent: 110, opacity: 0 });
-
-				if (reduceMotion) {
-					gsap.set(words, { yPercent: 0, opacity: 1 });
-				} else {
-					gsap.to(words, {
-						yPercent: 0,
-						opacity: 1,
-						duration: 1,
-						ease: 'power4.out',
-						stagger: 0.06,
-						delay: 0.2
-					});
-				}
-
-				gsap.from('.hero-sub, .hero-cta, .hero-scene', {
-					opacity: 0,
-					y: 30,
-					duration: 0.9,
-					ease: 'power3.out',
-					stagger: 0.12,
-					delay: reduceMotion ? 0 : 0.6
-				});
-
-				// Idle floating + rotation on the 3D scene
-				if (!reduceMotion && donutEl) {
-					gsap.to(donutEl, {
-						y: -18,
-						duration: 3.2,
-						ease: 'sine.inOut',
-						yoyo: true,
-						repeat: -1
-					});
-					gsap.to(donutEl, {
-						rotationZ: 8,
-						duration: 5,
-						ease: 'sine.inOut',
-						yoyo: true,
-						repeat: -1
-					});
-				}
-
-				// Background glow orbs drifting
-				if (!reduceMotion) {
-					gsap.utils.toArray('.orb').forEach((orb, i) => {
-						gsap.to(orb, {
-							x: i % 2 === 0 ? 60 : -60,
-							y: i % 2 === 0 ? -40 : 40,
-							duration: 8 + i * 2,
-							ease: 'sine.inOut',
-							yoyo: true,
-							repeat: -1
-						});
-					});
-				}
-
-				// Scroll reveals via onEnter callbacks: toggleActions-based from() tweens
-				// never play when an anchor jump scrolls past the section in one tick
-				/** @type {[string, Element, { x?: number, y?: number, stagger: number }][]} */
-				const reveals = [
-					['.service-card', servicesGridEl, { y: 40, stagger: 0.1 }],
-					['.product-card', workGridEl, { x: -30, y: 20, stagger: 0.12 }]
-				];
-				reveals.forEach(([sel, trigger, fromVars]) => {
-					gsap.set(sel, { opacity: 0, ...fromVars, stagger: 0 });
-					ScrollTrigger.create({
-						trigger,
-						start: 'top 85%',
-						once: true,
-						onEnter: () =>
-							gsap.to(sel, {
-								opacity: 1,
-								x: 0,
-								y: 0,
-								duration: 0.7,
-								stagger: fromVars.stagger,
-								ease: 'power3.out'
-							})
-					});
-				});
-
-				// Stats count-up
-				gsap.utils.toArray('.stat-number').forEach((el) => {
-					const target = Number(el.dataset.value);
-					const counter = { val: 0 };
-					ScrollTrigger.create({
-						trigger: statsEl,
-						start: 'top 85%',
-						once: true,
-						onEnter: () => {
-							gsap.to(counter, {
-								val: target,
-								duration: 1.6,
-								ease: 'power2.out',
-								onUpdate: () => {
-									el.textContent = Math.round(counter.val).toString();
-								}
-							});
-						}
-					});
-				});
-
-				// CTA band reveal (same onEnter pattern as above)
-				gsap.set('.cta-band-inner', { opacity: 0, y: 30 });
-				ScrollTrigger.create({
-					trigger: '.cta-band',
-					start: 'top 90%',
-					once: true,
-					onEnter: () =>
-						gsap.to('.cta-band-inner', { opacity: 1, y: 0, duration: 0.8, ease: 'power3.out' })
-				});
-			}); // unscoped: context animates selectors across the whole page, not just the hero
-
-			// Mouse-move parallax tilt on hero scene
-			if (!reduceMotion && sceneWrapEl && donutEl) {
-				const rotX = gsap.quickTo(donutEl, 'rotationX', { duration: 0.6, ease: 'power3.out' });
-				const rotY = gsap.quickTo(donutEl, 'rotationY', { duration: 0.6, ease: 'power3.out' });
-
-				/** @param {MouseEvent} e */
-				const onMove = (e) => {
-					const rect = sceneWrapEl.getBoundingClientRect();
-					const px = (e.clientX - rect.left) / rect.width - 0.5;
-					const py = (e.clientY - rect.top) / rect.height - 0.5;
-					rotY(px * 30);
-					rotX(-py * 30);
-				};
-
-				window.addEventListener('mousemove', onMove);
-				cleanupMouse = () => window.removeEventListener('mousemove', onMove);
-			}
-		})();
-
-		return () => {
-			cleanupMouse();
-			if (ctx) ctx.revert();
-		};
+		document.querySelectorAll('.stat-value').forEach((el, i) => {
+			if (el instanceof HTMLElement) countUp(el, stats[i].value, stats[i].format);
+		});
 	});
-
-	function handlePrimaryCta() {
-		posthog.capture('contact_btn_clicked');
-	}
 </script>
 
 <svelte:head>
-	<title>TechGFX Technologies — Digital Products That Move</title>
+	<title>TechGFX — We design, build & ship digital products</title>
 	<meta
 		name="description"
-		content="TechGFX designs and builds websites, web apps, mobile apps, e-commerce and cloud solutions for ambitious businesses. From concept to launch."
+		content="TechGFX is a UK digital product studio. Websites, web apps, mobile apps, e-commerce and branding — designed, built and shipped by one team."
 	/>
 </svelte:head>
 
-<section class="hero" bind:this={heroEl}>
-	<div class="orb orb-1"></div>
-	<div class="orb orb-2"></div>
+<!-- ============ HERO ============ -->
+<section class="hero section">
+	<div class="hero-rays" aria-hidden="true">
+		<LightRays
+			raysOrigin="top-center"
+			raysColor="#d9f45b"
+			raysSpeed={0.6}
+			lightSpread={0.9}
+			rayLength={1.6}
+			fadeDistance={0.9}
+			saturation={0.55}
+			followMouse={true}
+			mouseInfluence={0.06}
+			noiseAmount={0.04}
+			distortion={0.02}
+		/>
+	</div>
 
 	<div class="container hero-grid">
-		<div class="hero-copy">
-			<h1 class="hero-headline" bind:this={headlineEl}>
-				<span class="line"
-					><span class="word">We</span> <span class="word">design</span>
-					<span class="word">&amp;</span></span
-				>
-				<span class="line"
-					><span class="word">build</span> <span class="word">digital</span></span
-				>
-				<span class="line"
-					><span class="word gradient-text">products</span>
-					<span class="word gradient-text">that</span>
-					<span class="word gradient-text">move.</span></span
-				>
-			</h1>
-			<p class="hero-sub">
-				A studio for websites, web apps, mobile apps, and brand systems — built with craft,
-				shipped on time.
+		<p class="label">Digital product studio — Northampton, UK</p>
+		<h1 class="display">
+			We design, build<br />
+			&amp; <em class="serif-accent">ship</em> digital<br />
+			products.
+		</h1>
+		<div class="hero-foot">
+			<p class="lead">
+				One team from first sketch to production. Websites, apps and the brand around them —
+				live in weeks, not quarters.
 			</p>
 			<div class="hero-cta">
-				<a href="/pricing/" class="btn btn-primary" onclick={handlePrimaryCta}>Build your quote</a>
-				<a href="#work" class="btn btn-secondary">See our work</a>
-			</div>
-		</div>
-
-		<div class="hero-scene">
-			<div class="scene-wrap" bind:this={sceneWrapEl}>
-				<img src="/donut.webp" alt="TechGFX" class="donut" bind:this={donutEl} />
-			</div>
-		</div>
-	</div>
-</section>
-
-<section id="services" class="section services-section">
-	<div class="container">
-		<div class="section-header">
-			<h2>What we do</h2>
-			<p class="section-subtitle">Six ways we help you ship better digital products.</p>
-		</div>
-
-		<div class="services-grid" bind:this={servicesGridEl}>
-			{#each services as service}
-				<a href={`/services/${service.slug}/`} class="service-card glass">
-					<div class="service-icon">{service.icon}</div>
-					<h3>{service.name}</h3>
-					<p>{service.tagline}</p>
-					<div class="service-price">from £{service.price.toLocaleString()}</div>
-					<div class="card-glow"></div>
-				</a>
-			{/each}
-		</div>
-	</div>
-</section>
-
-<section id="work" class="section work-section">
-	<div class="container">
-		<div class="section-header">
-			<h2>Products we've built</h2>
-			<p class="section-subtitle">A few things we've shipped and still maintain.</p>
-		</div>
-
-		<div class="work-grid" bind:this={workGridEl}>
-			{#each products as product}
 				<a
-					href={product.url}
-					target="_blank"
-					rel="noopener noreferrer"
-					class="product-card glass"
+					href="/pricing/"
+					class="btn btn-solid"
+					use:magnetic
+					onclick={() => posthog.capture('contact_btn_clicked')}
 				>
-					<span class="product-tag">{product.tag}</span>
-					<h3>{product.name}</h3>
-					<p>{product.description}</p>
-					<span class="product-link">Visit site &rarr;</span>
+					Build your quote <span class="arrow">→</span>
+				</a>
+				<a href="/#work" class="btn btn-ghost" use:magnetic>See what we've shipped</a>
+			</div>
+		</div>
+	</div>
+
+	<p class="scroll-hint" aria-hidden="true">( scroll )</p>
+</section>
+
+<!-- ============ MARQUEE DIVIDER ============ -->
+<div class="strip" aria-hidden="true">
+	<div class="strip-track">
+		{#each [0, 1] as half (half)}
+			<div class="strip-half">
+				{#each services as s (s.slug)}
+					<span>{s.short}</span><span class="s-dot">✺</span>
+				{/each}
+			</div>
+		{/each}
+	</div>
+</div>
+
+<!-- ============ SERVICES ============ -->
+<section id="services" class="section chapter" data-theme="light">
+	<div class="container">
+		<div class="section-head">
+			<p class="label">01 — What we do</p>
+			<h2 class="h2">Capabilities, <span class="serif-accent">priced honestly.</span></h2>
+		</div>
+		<div class="service-rows-wrap">
+			<ServiceRows items={rowItems} />
+		</div>
+		<p class="after-note">
+			Every service has a page, a starting price and a scope —
+			<a href="/pricing/">combine them into a quote</a> in about a minute.
+		</p>
+	</div>
+</section>
+
+<!-- ============ WORK ============ -->
+<section id="work" class="section chapter">
+	<div class="container">
+		<div class="section-head">
+			<p class="label">02 — Shipped</p>
+			<h2 class="h2">Not mock-ups.<br /><span class="serif-accent">Live products.</span></h2>
+		</div>
+
+		<div class="products">
+			{#each products as p, i (p.url)}
+				<a class="product" href={p.url} target="_blank" rel="noopener">
+					<span class="p-idx">{String(i + 1).padStart(3, '0')}</span>
+					<span class="p-name">{p.name}</span>
+					<span class="p-meta">
+						<span class="p-tag">{p.tag}</span>
+						<span class="p-desc">{p.description}</span>
+						<span class="p-visit">Visit site <span class="arrow">→</span></span>
+					</span>
 				</a>
 			{/each}
 		</div>
 	</div>
-</section>
 
-<section class="stats-strip" bind:this={statsEl}>
-	<div class="container stats-grid">
-		{#each stats as stat}
+	<!-- stats -->
+	<div class="container stats">
+		{#each stats as stat (stat.label)}
 			<div class="stat">
-				<div class="stat-value">
-					<span class="stat-number" data-value={stat.value}>0</span>{stat.suffix}
-				</div>
-				<div class="stat-label">{stat.label}</div>
+				<span class="stat-value">0</span>
+				<span class="stat-label">{stat.label}</span>
 			</div>
 		{/each}
 	</div>
 </section>
 
-<section class="cta-band">
-	<div class="container cta-band-inner">
-		<h2 class="cta-heading gradient-text">Have an idea? Let's price it.</h2>
-		<div class="cta-actions">
-			<a href="/pricing/" class="btn btn-primary">Build your quote</a>
-			<a href="/contact/" class="cta-secondary-link">Or get in touch &rarr;</a>
+<!-- ============ PROCESS ============ -->
+<section id="process" class="section chapter" data-theme="light">
+	<div class="container">
+		<div class="section-head">
+			<p class="label">03 — How we work</p>
+			<h2 class="h2">Four steps. <span class="serif-accent">No theatre.</span></h2>
+		</div>
+		<div class="steps">
+			{#each steps as step (step.n)}
+				<div class="step">
+					<span class="step-n">{step.n}</span>
+					<h3>{step.t}</h3>
+					<p>{step.d}</p>
+				</div>
+			{/each}
 		</div>
 	</div>
 </section>
 
+<!-- ============ CTA ============ -->
+<section class="cta-band">
+	<div class="container cta-inner">
+		<h2 class="display">Let's <em class="serif-accent">price it.</em></h2>
+		<p>Pick your services, watch the number add up, book the call. About a minute.</p>
+		<a href="/pricing/" class="btn cta-btn" use:magnetic>Build your quote <span class="arrow">→</span></a>
+	</div>
+</section>
+
 <style>
+	/* ---------- hero ---------- */
 	.hero {
-		min-height: 100vh;
+		min-height: 100svh;
 		display: flex;
-		align-items: center;
-		position: relative;
-		overflow: hidden;
-		padding: 8rem 0 4rem;
+		flex-direction: column;
+		justify-content: flex-end;
+		padding-bottom: clamp(3rem, 6vh, 5rem);
+		overflow: clip;
 	}
 
-	.orb {
+	.hero-rays {
 		position: absolute;
-		border-radius: 50%;
-		filter: blur(90px);
-		pointer-events: none;
-		z-index: 0;
-	}
-
-	.orb-1 {
-		width: 500px;
-		height: 500px;
-		top: 10%;
-		left: -5%;
-		background: radial-gradient(circle, rgba(99, 102, 241, 0.25), transparent 70%);
-	}
-
-	.orb-2 {
-		width: 450px;
-		height: 450px;
-		bottom: 0%;
-		right: -5%;
-		background: radial-gradient(circle, rgba(236, 72, 153, 0.2), transparent 70%);
+		inset: 0;
 	}
 
 	.hero-grid {
-		display: grid;
-		grid-template-columns: 1.1fr 0.9fr;
-		align-items: center;
-		gap: 3rem;
 		position: relative;
-		z-index: 1;
+		z-index: 2;
+		display: flex;
+		flex-direction: column;
+		gap: clamp(1.5rem, 3vh, 2.5rem);
+		width: 100%;
 	}
 
-	.hero-headline {
-		font-size: clamp(2.5rem, 5.5vw, 4.5rem);
-		line-height: 1.08;
-		margin-bottom: 1.5rem;
-		background: none;
-		-webkit-text-fill-color: var(--color-text);
+	.hero h1 em {
+		color: var(--accent);
 	}
 
-	.line {
-		display: block;
-		overflow: hidden;
-	}
-
-	.word {
-		display: inline-block;
-		will-change: transform, opacity;
-	}
-
-	.hero-sub {
-		font-size: clamp(1.05rem, 1.6vw, 1.25rem);
-		color: var(--color-text-muted);
-		max-width: 480px;
-		margin-bottom: 2.25rem;
+	.hero-foot {
+		display: flex;
+		justify-content: space-between;
+		align-items: flex-end;
+		gap: 2.5rem;
+		flex-wrap: wrap;
 	}
 
 	.hero-cta {
 		display: flex;
-		gap: 1rem;
+		gap: 0.9rem;
 		flex-wrap: wrap;
 	}
 
-	.hero-scene {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		perspective: 1000px;
-	}
-
-	.scene-wrap {
-		perspective: 1000px;
-		width: 100%;
-		max-width: 420px;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-	}
-
-	.donut {
-		width: 100%;
-		max-width: 360px;
-		height: auto;
-		filter: drop-shadow(0 20px 60px rgba(99, 102, 241, 0.35));
-		transform-style: preserve-3d;
-		will-change: transform;
-	}
-
-	/* Services */
-	.section-header {
-		text-align: center;
-		margin-bottom: 3.5rem;
-	}
-
-	.section-header h2 {
-		font-size: clamp(2.25rem, 4vw, 3.25rem);
-		margin-bottom: 0.75rem;
-	}
-
-	.section-subtitle {
-		font-size: 1.15rem;
-		color: var(--color-text-muted);
-	}
-
-	.services-grid {
-		display: grid;
-		grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-		gap: 1.75rem;
-	}
-
-	.service-card {
-		display: block;
-		padding: 2.25rem;
-		border-radius: var(--radius-lg);
-		position: relative;
-		overflow: hidden;
-		color: var(--color-text);
-		text-decoration: none;
-		transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-	}
-
-	.service-card:hover {
-		transform: translateY(-8px);
-		border-color: rgba(99, 102, 241, 0.35);
-		box-shadow: 0 20px 40px -20px rgba(99, 102, 241, 0.4);
-	}
-
-	.service-card:hover .card-glow {
-		opacity: 1;
-	}
-
-	.card-glow {
+	.scroll-hint {
 		position: absolute;
-		inset: 0;
-		background: radial-gradient(circle at 30% 20%, rgba(99, 102, 241, 0.15), transparent 70%);
-		opacity: 0;
-		transition: opacity 0.4s ease;
-		pointer-events: none;
+		bottom: 1.4rem;
+		left: 50%;
+		transform: translateX(-50%);
+		font-family: var(--font-mono);
+		font-size: 0.68rem;
+		letter-spacing: 0.22em;
+		color: var(--fg-40);
+		z-index: 2;
 	}
 
-	.service-icon {
-		font-size: 2.5rem;
-		margin-bottom: 1.25rem;
+	/* ---------- marquee strip ---------- */
+	.strip {
+		background: var(--accent);
+		color: var(--ink);
+		overflow: clip;
+		padding-block: 0.9rem;
+	}
+	.strip-track {
+		display: flex;
+		width: max-content;
+		/* linear is correct for a continuous marquee */
+		animation: strip-scroll 24s linear infinite;
+	}
+	.strip-half {
+		display: flex;
+		align-items: center;
+		gap: 2.25rem;
+		padding-right: 2.25rem;
+		font-weight: 500;
+		font-size: 1.05rem;
+		letter-spacing: -0.01em;
+		white-space: nowrap;
+	}
+	.s-dot {
+		font-size: 0.8em;
+	}
+	@keyframes strip-scroll {
+		to {
+			transform: translateX(-50%);
+		}
 	}
 
-	.service-card h3 {
-		font-size: 1.25rem;
-		margin-bottom: 0.5rem;
+	/* ---------- chapters ---------- */
+	.chapter {
+		padding-block: clamp(5rem, 11vw, 10rem);
 	}
 
-	.service-card p {
-		margin-bottom: 1.25rem;
+	.section-head {
+		display: flex;
+		flex-direction: column;
+		gap: 1.4rem;
+		margin-bottom: clamp(2.5rem, 6vw, 5rem);
+	}
+	.section-head .h2 {
+		max-width: 22ch;
 	}
 
-	.service-price {
-		font-weight: 600;
-		color: var(--color-primary);
+	.after-note {
+		margin-top: 2rem;
 		font-size: 0.95rem;
+		color: var(--fg-60);
+	}
+	.after-note a {
+		color: var(--fg);
+		text-decoration-color: var(--accent);
+		text-underline-offset: 4px;
 	}
 
-	/* Work */
-	.work-grid {
+	/* ---------- products ---------- */
+	.products {
+		display: flex;
+		flex-direction: column;
+	}
+
+	.product {
 		display: grid;
-		grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-		gap: 1.75rem;
-	}
-
-	.product-card {
-		display: block;
-		padding: 2.25rem;
-		border-radius: var(--radius-lg);
+		grid-template-columns: 4rem 1fr minmax(0, 38%);
+		gap: 2rem;
+		align-items: start;
+		padding-block: clamp(2rem, 4vw, 3.25rem);
+		border-top: 1px solid var(--line);
 		text-decoration: none;
-		color: var(--color-text);
-		transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-		position: relative;
+		color: var(--fg);
+	}
+	.product:last-child {
+		border-bottom: 1px solid var(--line);
+	}
+	/* intentional grid break — even rows push right */
+	.product:nth-child(even) {
+		padding-left: clamp(0px, 6vw, 7rem);
 	}
 
-	.product-card:hover {
-		transform: translateY(-6px);
-		border-color: rgba(236, 72, 153, 0.35);
-		box-shadow: 0 20px 40px -20px rgba(236, 72, 153, 0.35);
+	.p-idx {
+		font-family: var(--font-mono);
+		font-size: 0.72rem;
+		color: var(--fg-40);
+		padding-top: 0.9rem;
 	}
 
-	.product-tag {
-		display: inline-block;
-		font-size: 0.75rem;
-		font-weight: 600;
+	.p-name {
+		font-size: clamp(2.2rem, 6vw, 5rem);
+		font-weight: 500;
+		letter-spacing: -0.035em;
+		line-height: 0.95;
+		transition: color 0.4s var(--ease-out);
+	}
+	.product:hover .p-name {
+		color: var(--accent);
+	}
+
+	.p-meta {
+		display: flex;
+		flex-direction: column;
+		gap: 0.8rem;
+		align-items: flex-start;
+	}
+	.p-tag {
+		font-family: var(--font-mono);
+		font-size: 0.65rem;
 		text-transform: uppercase;
-		letter-spacing: 0.05em;
-		padding: 0.3rem 0.75rem;
-		border-radius: var(--radius-full);
-		background: rgba(99, 102, 241, 0.15);
-		color: var(--color-primary);
-		margin-bottom: 1rem;
+		letter-spacing: 0.16em;
+		padding: 0.35rem 0.8rem;
+		border: 1px solid var(--line);
+		border-radius: 999px;
+		color: var(--fg-60);
 	}
-
-	.product-card h3 {
-		font-size: 1.3rem;
-		margin-bottom: 0.5rem;
+	.p-desc {
+		color: var(--fg-60);
+		font-size: 0.98rem;
+		line-height: 1.55;
 	}
-
-	.product-link {
+	.p-visit {
+		font-family: var(--font-mono);
+		font-size: 0.72rem;
+		text-transform: uppercase;
+		letter-spacing: 0.14em;
+		color: var(--fg);
+	}
+	.p-visit .arrow {
 		display: inline-block;
-		margin-top: 0.5rem;
-		font-weight: 600;
-		color: var(--color-secondary);
+		transition: transform 0.45s var(--ease-out);
+	}
+	.product:hover .p-visit .arrow {
+		transform: translateX(5px);
 	}
 
-	/* Stats strip */
-	.stats-strip {
-		padding: 4rem 0;
-		border-top: 1px solid rgba(255, 255, 255, 0.06);
-		border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-	}
-
-	.stats-grid {
+	/* ---------- stats ---------- */
+	.stats {
 		display: grid;
 		grid-template-columns: repeat(4, 1fr);
 		gap: 2rem;
-		text-align: center;
+		margin-top: clamp(4rem, 8vw, 7rem);
+		padding-top: 2.5rem;
+		border-top: 1px solid var(--line);
 	}
-
-	.stat-value {
-		font-size: clamp(2.25rem, 4vw, 3rem);
-		font-weight: 700;
-		background: var(--gradient-primary);
-		-webkit-background-clip: text;
-		-webkit-text-fill-color: transparent;
-		background-clip: text;
-	}
-
-	.stat-label {
-		color: var(--color-text-muted);
-		margin-top: 0.5rem;
-		font-size: 0.95rem;
-	}
-
-	/* CTA band */
-	.cta-band {
-		padding: clamp(4rem, 10vw, 8rem) 0;
-		text-align: center;
-	}
-
-	.cta-heading {
-		font-size: clamp(2.25rem, 5vw, 3.75rem);
-		margin-bottom: 2rem;
-	}
-
-	.cta-actions {
+	.stat {
 		display: flex;
-		align-items: center;
-		justify-content: center;
-		gap: 1.5rem;
-		flex-wrap: wrap;
+		flex-direction: column;
+		gap: 0.4rem;
 	}
-
-	.cta-secondary-link {
-		color: var(--color-text-muted);
-		text-decoration: none;
+	.stat-value {
+		font-size: clamp(2.6rem, 5.5vw, 4.5rem);
 		font-weight: 500;
-		transition: color 0.3s ease;
+		letter-spacing: -0.03em;
+		line-height: 1;
+		color: var(--accent);
+		font-variant-numeric: tabular-nums;
+	}
+	.stat-label {
+		font-family: var(--font-mono);
+		font-size: 0.7rem;
+		text-transform: uppercase;
+		letter-spacing: 0.14em;
+		color: var(--fg-60);
 	}
 
-	.cta-secondary-link:hover {
-		color: var(--color-primary);
+	/* ---------- process ---------- */
+	.steps {
+		display: grid;
+		grid-template-columns: repeat(4, 1fr);
+		gap: 1px;
+		background: var(--line);
+		border: 1px solid var(--line);
+	}
+	.step {
+		background: var(--bg);
+		padding: 2rem 1.6rem 2.6rem;
+		display: flex;
+		flex-direction: column;
+		gap: 1rem;
+	}
+	.step-n {
+		font-family: var(--font-mono);
+		font-size: 0.72rem;
+		color: var(--fg-40);
+	}
+	.step h3 {
+		font-size: 1.55rem;
+		letter-spacing: -0.02em;
+	}
+	.step p {
+		color: var(--fg-60);
+		font-size: 0.95rem;
+		line-height: 1.6;
 	}
 
+	/* ---------- CTA band ---------- */
+	.cta-band {
+		background: var(--accent);
+		color: var(--ink);
+		padding-block: clamp(5rem, 12vw, 10rem);
+	}
+	.cta-inner {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 2rem;
+	}
+	.cta-inner p {
+		font-size: 1.1rem;
+		max-width: 34em;
+		color: rgba(11, 11, 13, 0.72);
+	}
+	.cta-btn {
+		background: var(--ink);
+		color: var(--paper);
+	}
+	.cta-btn:hover {
+		background: var(--paper);
+		color: var(--ink);
+	}
+
+	/* ---------- responsive ---------- */
 	@media (max-width: 900px) {
-		.hero-grid {
-			grid-template-columns: 1fr;
-			text-align: center;
+		.steps {
+			grid-template-columns: 1fr 1fr;
 		}
-
-		.hero-cta {
-			justify-content: center;
+		.stats {
+			grid-template-columns: 1fr 1fr;
 		}
-
-		.hero-sub {
-			margin-left: auto;
-			margin-right: auto;
+		.product {
+			grid-template-columns: 2.4rem 1fr;
 		}
-
-		.hero-scene {
-			order: -1;
+		.p-meta {
+			grid-column: 2;
 		}
-
-		.donut {
-			max-width: 240px;
-		}
-
-		.stats-grid {
-			grid-template-columns: repeat(2, 1fr);
-		}
-	}
-
-	@media (max-width: 480px) {
-		.hero {
-			padding: 7rem 0 3rem;
+		.product:nth-child(even) {
+			padding-left: 0;
 		}
 	}
 </style>

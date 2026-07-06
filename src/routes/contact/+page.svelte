@@ -1,233 +1,205 @@
 <script>
 	import { onMount } from 'svelte';
 	import { services } from '$lib/data/services.js';
+	import { gsap, revealLines, revealOnScroll, magnetic, reducedMotion, EASE } from '$lib/motion.js';
 
-	const contactCards = [
-		{ icon: '📍', label: 'Location', value: 'Northampton, United Kingdom' },
-		{ icon: '📞', label: 'Phone', value: '+44 795 562 4268', href: 'tel:+447955624268' },
-		{ icon: '✉️', label: 'Email', value: 'info@techgfxlimited.com', href: 'mailto:info@techgfxlimited.com' }
+	const info = [
+		{ label: 'Location', value: 'Northampton, United Kingdom' },
+		{ label: 'Phone', value: '+44 795 562 4268', href: 'tel:+447955624268' },
+		{ label: 'Email', value: 'info@techgfxlimited.com', href: 'mailto:info@techgfxlimited.com', accent: true }
 	];
 
-	onMount(() => {
-		(async () => {
-			const gsap = (await import('gsap')).default;
-			const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+	const socials = [
+		{ label: 'LinkedIn', href: 'https://www.linkedin.com/in/chukwuemeka-anyakora/' },
+		{ label: 'Instagram', href: 'https://www.instagram.com/techgfx_' },
+		{ label: 'GitHub', href: 'https://github.com/techgfxlimited' }
+	];
 
-			gsap.from('.contact-anim', {
-				opacity: 0,
-				y: reduceMotion ? 0 : 26,
-				duration: reduceMotion ? 0.01 : 0.7,
-				stagger: reduceMotion ? 0 : 0.08,
-				ease: 'power3.out'
-			});
-		})();
+	/** @type {HTMLElement} */
+	let heroH1;
+
+	onMount(() => {
+		if (reducedMotion()) return;
+
+		const tl = gsap.timeline({ delay: 0.1 });
+		tl.from('.hero .label', { opacity: 0, y: 16, duration: 0.8, ease: EASE }, 0);
+		revealLines(heroH1, { delay: 0.15, stagger: 0.1 });
+
+		revealOnScroll('.info-row', '.info-list', { y: 20, stagger: 0.07 });
+		revealOnScroll('.social-row', '.social-list', { y: 16, stagger: 0.06 });
+		revealOnScroll('.field', '.contact-form', { y: 20, stagger: 0.05 });
 	});
 </script>
 
 <svelte:head>
-	<title>Contact — TechGFX Technologies</title>
+	<title>Contact — TechGFX</title>
 	<meta
 		name="description"
-		content="Get in touch with TechGFX Technologies to discuss your website, app, or digital product idea."
+		content="Get in touch with TechGFX to discuss your website, app, or digital product idea."
 	/>
 </svelte:head>
 
-<section class="contact-hero">
-	<div class="container">
-		<h1 class="contact-anim">Let's talk</h1>
-		<p class="contact-anim subtitle">
-			Tell us about your project and we'll get back to you within one business day.
-		</p>
-	</div>
-</section>
+<section class="hero section">
+	<div class="container contact-grid">
+		<div class="contact-left">
+			<p class="label">Contact</p>
+			<h1 class="display" bind:this={heroH1}>Say <span class="serif-accent">hello.</span></h1>
 
-<section class="section contact-section">
-	<div class="container">
-		<div class="contact-cards contact-anim">
-			{#each contactCards as card}
-				<div class="contact-card glass">
-					<div class="contact-icon">{card.icon}</div>
-					<h3>{card.label}</h3>
-					{#if card.href}
-						<a href={card.href}>{card.value}</a>
-					{:else}
-						<p>{card.value}</p>
-					{/if}
-				</div>
-			{/each}
+			<ul class="info-list">
+				{#each info as item (item.label)}
+					<li class="info-row">
+						<span class="info-label">{item.label}</span>
+						{#if item.href}
+							<a href={item.href} class="info-value" class:accent={item.accent}>{item.value}</a>
+						{:else}
+							<span class="info-value">{item.value}</span>
+						{/if}
+					</li>
+				{/each}
+			</ul>
+
+			<ul class="social-list">
+				{#each socials as s (s.href)}
+					<li class="social-row">
+						<a href={s.href} target="_blank" rel="noopener">{s.label}</a>
+					</li>
+				{/each}
+			</ul>
 		</div>
 
 		<form
-			class="contact-form glass contact-anim"
+			class="contact-form"
 			action="https://formsubmit.co/info@techgfxlimited.com"
 			method="POST"
 		>
 			<input type="hidden" name="_subject" value="New enquiry from techgfxlimited.com" />
 			<input type="hidden" name="_captcha" value="false" />
 
-			<div class="form-row">
-				<div class="form-group">
-					<label for="name">Name</label>
-					<input type="text" id="name" name="name" required />
-				</div>
-				<div class="form-group">
-					<label for="email">Email</label>
-					<input type="email" id="email" name="email" required />
-				</div>
+			<div class="field">
+				<label for="name">Name</label>
+				<input type="text" id="name" name="name" required />
 			</div>
-
-			<div class="form-row">
-				<div class="form-group">
-					<label for="company">Company <span class="optional">(optional)</span></label>
-					<input type="text" id="company" name="company" />
-				</div>
-				<div class="form-group">
-					<label for="service">Service interest</label>
-					<select id="service" name="service">
-						<option value="">Not sure yet</option>
-						{#each services as service}
-							<option value={service.name}>{service.name}</option>
-						{/each}
-					</select>
-				</div>
+			<div class="field">
+				<label for="email">Email</label>
+				<input type="email" id="email" name="email" required />
 			</div>
-
-			<div class="form-group">
+			<div class="field">
+				<label for="company">Company (optional)</label>
+				<input type="text" id="company" name="company" />
+			</div>
+			<div class="field">
+				<label for="service">Service interest</label>
+				<select id="service" name="service">
+					<option value="">Not sure yet</option>
+					{#each services as service (service.slug)}
+						<option value={service.name}>{service.name}</option>
+					{/each}
+				</select>
+			</div>
+			<div class="field">
 				<label for="message">Message</label>
 				<textarea id="message" name="message" rows="6" required></textarea>
 			</div>
 
-			<button type="submit" class="btn btn-primary full-width">Send message</button>
+			<button type="submit" class="btn btn-solid full-width" use:magnetic>
+				Send it <span class="arrow">→</span>
+			</button>
 		</form>
 	</div>
 </section>
 
 <style>
-	.contact-hero {
-		padding: 9rem 0 2rem;
-		text-align: center;
+	.hero {
+		padding-top: clamp(8rem, 16vh, 11rem);
+		padding-bottom: clamp(5rem, 10vh, 7rem);
 	}
 
-	.contact-hero h1 {
-		font-size: clamp(2.25rem, 5vw, 3.25rem);
-		margin-bottom: 1rem;
-	}
-
-	.subtitle {
-		color: var(--color-text-muted);
-		font-size: 1.1rem;
-		max-width: 500px;
-		margin: 0 auto;
-	}
-
-	.contact-cards {
-		display: grid;
-		grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-		gap: 1.5rem;
-		margin-bottom: 3rem;
-	}
-
-	.contact-card {
-		padding: 2rem;
-		border-radius: var(--radius-lg);
-		text-align: center;
-		transition: all 0.3s ease;
-	}
-
-	.contact-card:hover {
-		transform: translateY(-5px);
-		border-color: rgba(99, 102, 241, 0.3);
-	}
-
-	.contact-icon {
-		font-size: 2.25rem;
-		margin-bottom: 0.75rem;
-	}
-
-	.contact-card h3 {
-		font-size: 1.1rem;
-		margin-bottom: 0.5rem;
-	}
-
-	.contact-card a,
-	.contact-card p {
-		color: var(--color-text-muted);
-		text-decoration: none;
-		margin: 0;
-	}
-
-	.contact-card a:hover {
-		color: var(--color-primary);
-	}
-
-	.contact-form {
-		max-width: 720px;
-		margin: 0 auto;
-		padding: 2.5rem;
-		border-radius: var(--radius-lg);
-		display: flex;
-		flex-direction: column;
-		gap: 1.5rem;
-	}
-
-	.form-row {
+	.contact-grid {
 		display: grid;
 		grid-template-columns: 1fr 1fr;
-		gap: 1.5rem;
+		gap: clamp(3rem, 6vw, 6rem);
+		align-items: start;
 	}
 
-	.form-group {
+	.contact-left {
 		display: flex;
 		flex-direction: column;
-		gap: 0.5rem;
+		gap: clamp(2rem, 4vw, 3rem);
 	}
 
-	.form-group label {
+	/* ---------- info list ---------- */
+	.info-list {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+		border-top: 1px solid var(--line);
+	}
+	.info-row {
+		display: flex;
+		justify-content: space-between;
+		align-items: baseline;
+		gap: 1rem;
+		padding-block: 1.1rem;
+		border-bottom: 1px solid var(--line);
+		font-family: var(--font-mono);
+	}
+	.info-label {
+		font-size: 0.7rem;
+		text-transform: uppercase;
+		letter-spacing: 0.14em;
+		color: var(--fg-60);
+	}
+	.info-value {
 		font-size: 0.9rem;
-		font-weight: 500;
-		color: var(--color-text);
+		letter-spacing: 0.02em;
+		color: var(--fg);
+		text-decoration: none;
+		transition: color 0.35s var(--ease-out);
+	}
+	a.info-value:hover {
+		color: var(--accent);
+	}
+	.info-value.accent {
+		color: var(--accent);
 	}
 
-	.optional {
-		color: var(--color-text-muted);
-		font-weight: 400;
+	/* ---------- socials ---------- */
+	.social-list {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+		display: flex;
+		gap: 1.75rem;
+		flex-wrap: wrap;
+	}
+	.social-row a {
+		font-family: var(--font-mono);
+		font-size: 0.75rem;
+		text-transform: uppercase;
+		letter-spacing: 0.12em;
+		text-decoration: none;
+		color: var(--fg-60);
+		transition: color 0.35s var(--ease-out);
+	}
+	.social-row a:hover {
+		color: var(--accent);
 	}
 
-	.form-group input,
-	.form-group select,
-	.form-group textarea {
-		background: rgba(255, 255, 255, 0.04);
-		border: 1px solid rgba(255, 255, 255, 0.1);
-		border-radius: var(--radius-md);
-		padding: 0.75rem 1rem;
-		color: var(--color-text);
-		font-family: inherit;
-		font-size: 0.95rem;
-		transition: border-color 0.3s ease;
-	}
-
-	.form-group input:focus,
-	.form-group select:focus,
-	.form-group textarea:focus {
-		outline: none;
-		border-color: var(--color-primary);
-	}
-
-	.form-group textarea {
-		resize: vertical;
+	/* ---------- form ---------- */
+	.contact-form {
+		display: flex;
+		flex-direction: column;
+		gap: 1.75rem;
 	}
 
 	.full-width {
 		width: 100%;
+		margin-top: 0.5rem;
 	}
 
-	@media (max-width: 640px) {
-		.form-row {
+	@media (max-width: 860px) {
+		.contact-grid {
 			grid-template-columns: 1fr;
-		}
-
-		.contact-form {
-			padding: 1.75rem;
 		}
 	}
 </style>

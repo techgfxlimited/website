@@ -3,6 +3,7 @@
 export const services = [
 	{
 		slug: 'website',
+		short: 'Websites',
 		name: 'Website Design & Development',
 		icon: '🌐',
 		tagline: 'Fast, beautiful websites that convert visitors into customers.',
@@ -22,6 +23,7 @@ export const services = [
 	},
 	{
 		slug: 'web-app',
+		short: 'Web apps',
 		name: 'Web Application Development',
 		icon: '🧩',
 		tagline: 'Custom web apps engineered for scale and reliability.',
@@ -41,6 +43,7 @@ export const services = [
 	},
 	{
 		slug: 'mobile-app',
+		short: 'Mobile apps',
 		name: 'Mobile App Development',
 		icon: '📱',
 		tagline: 'Native-feel apps for iOS and Android from one codebase.',
@@ -60,6 +63,7 @@ export const services = [
 	},
 	{
 		slug: 'ecommerce',
+		short: 'E-commerce',
 		name: 'E-commerce Solutions',
 		icon: '🛍️',
 		tagline: 'Online stores built to sell, not just to look good.',
@@ -79,6 +83,7 @@ export const services = [
 	},
 	{
 		slug: 'branding',
+		short: 'Branding',
 		name: 'Branding, Logo & Graphic Design',
 		icon: '🎨',
 		tagline: 'A visual identity your audience remembers.',
@@ -98,6 +103,7 @@ export const services = [
 	},
 	{
 		slug: 'cloud',
+		short: 'Cloud & DevOps',
 		name: 'Cloud & DevOps',
 		icon: '☁️',
 		tagline: 'Infrastructure that scales quietly in the background.',

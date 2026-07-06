@@ -5,6 +5,7 @@
 	import { onMount } from 'svelte';
 	import Header from '$lib/components/Header.svelte';
 	import Footer from '$lib/components/Footer.svelte';
+	import { initSmoothScroll } from '$lib/motion.js';
 
 	let { children } = $props();
 
@@ -18,7 +19,10 @@
 				}
 			);
 		}
-		return;
+		const destroy = initSmoothScroll();
+		return () => {
+			destroy.then((d) => d());
+		};
 	});
 </script>
 

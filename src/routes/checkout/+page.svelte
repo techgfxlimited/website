@@ -1,6 +1,7 @@
 <script>
 	import { onMount } from 'svelte';
 	import { services } from '$lib/data/services.js';
+	import { gsap, revealLines, revealOnScroll, magnetic, reducedMotion, EASE } from '$lib/motion.js';
 
 	// ponytail: swap for a real Stripe Payment Link before going live
 	const STRIPE_PAYMENT_LINK = 'https://buy.stripe.com/REPLACE_ME';
@@ -11,6 +12,9 @@
 
 	const total = $derived(selectedItems.reduce((sum, s) => sum + s.price, 0));
 
+	/** @type {HTMLElement} */
+	let heroH1;
+
 	onMount(() => {
 		const params = new URLSearchParams(window.location.search);
 		const itemsParam = params.get('items');
@@ -18,61 +22,65 @@
 		selectedItems = services.filter((s) => slugs.includes(s.slug));
 		ready = true;
 
-		(async () => {
-			const gsap = (await import('gsap')).default;
-			const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-			gsap.from('.checkout-anim', {
+		if (reducedMotion()) return;
+
+		const tl = gsap.timeline({ delay: 0.1 });
+		tl.from('.hero .label', { opacity: 0, y: 16, duration: 0.8, ease: EASE }, 0);
+		revealLines(heroH1, { delay: 0.15, stagger: 0.1 });
+
+		requestAnimationFrame(() => {
+			revealOnScroll('.order-row', '.order-summary', { y: 22, stagger: 0.06 });
+			gsap.from('.checkout-actions > *', {
 				opacity: 0,
-				y: reduceMotion ? 0 : 24,
-				duration: reduceMotion ? 0.01 : 0.7,
-				stagger: reduceMotion ? 0 : 0.08,
-				ease: 'power3.out'
+				y: 20,
+				duration: 0.8,
+				stagger: 0.08,
+				delay: 0.4,
+				ease: EASE
 			});
-		})();
+		});
 	});
 </script>
 
 <svelte:head>
-	<title>Checkout — TechGFX Technologies</title>
+	<title>Checkout — TechGFX</title>
 	<meta
 		name="description"
 		content="Review your selected services and reserve your project with a deposit or book a scoping call."
 	/>
 </svelte:head>
 
-<section class="checkout-hero">
-	<div class="container">
-		<h1 class="checkout-anim">Checkout</h1>
-		<p class="checkout-anim subtitle">Review your selection before securing your slot.</p>
+<section class="hero section">
+	<div class="container hero-grid">
+		<p class="label">Checkout</p>
+		<h1 class="h2" bind:this={heroH1}>Almost <span class="serif-accent">there.</span></h1>
 	</div>
 </section>
 
-<section class="section checkout-section">
+<section class="section chapter">
 	<div class="container narrow">
 		{#if !ready}
 			<div class="loading-placeholder"></div>
 		{:else if selectedItems.length === 0}
-			<div class="empty-state glass checkout-anim">
-				<p>No services selected yet.</p>
-				<a href="/pricing/" class="btn btn-primary">Back to pricing</a>
+			<div class="empty-state">
+				<p class="empty-note">( nothing here yet )</p>
+				<a href="/pricing/" class="btn btn-ghost" use:magnetic>Back to pricing</a>
 			</div>
 		{:else}
-			<div class="order-summary glass checkout-anim">
-				<h2>Order summary</h2>
+			<div class="order-summary">
+				<p class="label">Order summary</p>
 				<ul class="order-list">
 					{#each selectedItems as item (item.slug)}
-						<li>
-							<div>
-								<span class="item-name">{item.name}</span>
-								<span class="item-note">{item.priceNote}</span>
-							</div>
+						<li class="order-row">
+							<span class="item-name">{item.name}</span>
+							<span class="item-note">starting from</span>
 							<span class="item-price">£{item.price.toLocaleString()}</span>
 						</li>
 					{/each}
 				</ul>
 				<div class="order-total">
-					<span>Total</span>
-					<span class="total-value gradient-text">£{total.toLocaleString()}</span>
+					<span class="total-label">Total</span>
+					<span class="total-value">£{total.toLocaleString()}</span>
 				</div>
 				<p class="order-note">
 					Indicative starting prices — final quote confirmed after scoping call. A deposit
@@ -80,121 +88,149 @@
 				</p>
 			</div>
 
-			<div class="checkout-actions checkout-anim">
-				<a href={STRIPE_PAYMENT_LINK} target="_blank" rel="noopener noreferrer" class="btn btn-primary full-width">
-					Pay deposit with Stripe
+			<div class="checkout-actions">
+				<a
+					href={STRIPE_PAYMENT_LINK}
+					target="_blank"
+					rel="noopener noreferrer"
+					class="btn btn-solid full-width"
+					use:magnetic
+				>
+					Pay deposit with Stripe <span class="arrow">→</span>
 				</a>
-				<a href="/contact/" class="btn btn-secondary full-width">Or book a scoping call</a>
+				<a href="/contact/" class="btn btn-ghost full-width" use:magnetic>
+					Book a scoping call instead
+				</a>
 			</div>
 		{/if}
 	</div>
 </section>
 
 <style>
-	.checkout-hero {
-		padding: 9rem 0 2rem;
-		text-align: center;
+	.hero {
+		padding-top: clamp(8rem, 16vh, 11rem);
+		padding-bottom: clamp(3rem, 6vh, 5rem);
+	}
+	.hero-grid {
+		display: flex;
+		flex-direction: column;
+		gap: clamp(1.25rem, 2.5vh, 2rem);
 	}
 
-	.checkout-hero h1 {
-		font-size: clamp(2.25rem, 5vw, 3.25rem);
-		margin-bottom: 1rem;
-	}
-
-	.subtitle {
-		color: var(--color-text-muted);
-		font-size: 1.1rem;
+	.chapter {
+		padding-block: 0 clamp(5rem, 11vw, 8rem);
 	}
 
 	.narrow {
-		max-width: 640px;
+		max-width: 760px;
 	}
 
 	.loading-placeholder {
 		min-height: 200px;
 	}
 
+	/* ---------- empty state ---------- */
 	.empty-state {
-		text-align: center;
-		padding: 3rem 2rem;
-		border-radius: var(--radius-lg);
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 1.5rem;
+		padding-block: clamp(3rem, 8vw, 5rem);
+		border-top: 1px solid var(--line);
+		border-bottom: 1px solid var(--line);
+	}
+	.empty-note {
+		font-family: var(--font-mono);
+		font-size: 0.9rem;
+		letter-spacing: 0.06em;
+		color: var(--fg-60);
 	}
 
-	.empty-state p {
-		margin-bottom: 1.5rem;
-	}
-
+	/* ---------- order summary ---------- */
 	.order-summary {
-		padding: 2rem;
-		border-radius: var(--radius-lg);
-		margin-bottom: 2rem;
-	}
-
-	.order-summary h2 {
-		font-size: 1.4rem;
-		margin-bottom: 1.5rem;
+		display: flex;
+		flex-direction: column;
+		gap: 1.5rem;
 	}
 
 	.order-list {
 		list-style: none;
-		margin: 0 0 1.5rem;
+		margin: 0;
 		padding: 0;
-		display: flex;
-		flex-direction: column;
-		gap: 1rem;
+		border-top: 1px solid var(--line);
 	}
-
-	.order-list li {
-		display: flex;
-		justify-content: space-between;
+	.order-row {
+		display: grid;
+		grid-template-columns: 1fr auto auto;
 		align-items: baseline;
-		padding-bottom: 1rem;
-		border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+		gap: 1rem;
+		padding-block: clamp(1.1rem, 2.5vw, 1.6rem);
+		border-bottom: 1px solid var(--line);
 	}
-
 	.item-name {
-		display: block;
-		font-weight: 600;
+		font-size: 1.15rem;
+		letter-spacing: -0.01em;
 	}
-
 	.item-note {
-		display: block;
-		font-size: 0.8rem;
-		color: var(--color-text-muted);
+		font-family: var(--font-mono);
+		font-size: 0.68rem;
+		text-transform: uppercase;
+		letter-spacing: 0.1em;
+		color: var(--fg-40);
 	}
-
 	.item-price {
-		font-weight: 600;
-		color: var(--color-primary);
+		font-family: var(--font-mono);
+		font-size: 0.9rem;
+		color: var(--fg-60);
+		white-space: nowrap;
 	}
 
 	.order-total {
 		display: flex;
 		justify-content: space-between;
-		align-items: center;
-		font-weight: 600;
-		font-size: 1.1rem;
-		margin-bottom: 1rem;
+		align-items: baseline;
+		padding-top: 0.5rem;
 	}
-
+	.total-label {
+		font-family: var(--font-mono);
+		font-size: 0.78rem;
+		text-transform: uppercase;
+		letter-spacing: 0.12em;
+		color: var(--fg-60);
+	}
 	.total-value {
-		font-size: 1.75rem;
-		font-weight: 700;
+		font-size: clamp(2rem, 4vw, 2.75rem);
+		font-weight: 500;
+		letter-spacing: -0.03em;
+		color: var(--accent);
+		font-variant-numeric: tabular-nums;
 	}
 
 	.order-note {
-		font-size: 0.85rem;
-		color: var(--color-text-muted);
-		margin: 0;
+		font-family: var(--font-mono);
+		font-size: 0.75rem;
+		line-height: 1.7;
+		color: var(--fg-40);
 	}
 
+	/* ---------- actions ---------- */
 	.checkout-actions {
 		display: flex;
 		flex-direction: column;
 		gap: 1rem;
+		margin-top: clamp(2.5rem, 5vw, 3.5rem);
 	}
 
 	.full-width {
 		width: 100%;
+	}
+
+	@media (max-width: 640px) {
+		.order-row {
+			grid-template-columns: 1fr auto;
+		}
+		.item-note {
+			grid-column: 1;
+		}
 	}
 </style>

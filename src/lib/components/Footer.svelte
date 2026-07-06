@@ -1,128 +1,159 @@
 <script>
+	import { magnetic } from '$lib/motion.js';
+	import { services } from '$lib/data/services.js';
+
 	const year = new Date().getFullYear();
 
-	const quickLinks = [
-		{ label: 'Home', href: '/' },
-		{ label: 'Services', href: '/#services' },
-		{ label: 'Work', href: '/#work' },
-		{ label: 'Pricing', href: '/pricing/' },
-		{ label: 'Contact', href: '/contact/' }
+	const socials = [
+		{ label: 'LinkedIn', href: 'https://www.linkedin.com/in/chukwuemeka-anyakora/' },
+		{ label: 'Instagram', href: 'https://www.instagram.com/techgfx_' },
+		{ label: 'GitHub', href: 'https://github.com/techgfxlimited' }
 	];
 </script>
 
-<footer class="footer">
-	<div class="container grid">
-		<div class="col brand">
-			<div class="brand-name gradient-text">TechGFX</div>
-			<p>
-				A studio designing and building websites, apps, and digital products for ambitious
-				businesses — from first sketch to production launch.
-			</p>
-		</div>
+<footer>
+	<div class="container cta-row">
+		<p class="label">Next step</p>
+		<h2 class="h2">
+			Have an idea <span class="serif-accent">worth building?</span>
+		</h2>
+		<a href="mailto:info@techgfxlimited.com" class="email-link" use:magnetic={0.15}>
+			info@techgfxlimited.com <span class="arrow">→</span>
+		</a>
+	</div>
 
-		<div class="col">
-			<h4>Quick links</h4>
-			<ul>
-				{#each quickLinks as link}
-					<li><a href={link.href}>{link.label}</a></li>
-				{/each}
-			</ul>
-		</div>
-
-		<div class="col">
-			<h4>Contact</h4>
-			<ul class="contact-list">
-				<li>Northampton, United Kingdom</li>
-				<li><a href="tel:+447955624268">+44 795 562 4268</a></li>
-				<li><a href="mailto:info@techgfxlimited.com">info@techgfxlimited.com</a></li>
-			</ul>
-			<div class="socials">
-				<a href="https://www.linkedin.com/in/chukwuemeka-anyakora/" target="_blank" rel="noopener">LinkedIn</a>
-				<a href="https://www.instagram.com/techgfx_" target="_blank" rel="noopener">Instagram</a>
-				<a href="https://github.com/techgfxlimited" target="_blank" rel="noopener">GitHub</a>
-			</div>
+	<div class="container cols">
+		<nav aria-label="Footer">
+			<p class="col-title">Menu</p>
+			<a href="/">Home</a>
+			<a href="/#work">Work</a>
+			<a href="/pricing/">Pricing</a>
+			<a href="/contact/">Contact</a>
+		</nav>
+		<nav aria-label="Services">
+			<p class="col-title">Services</p>
+			{#each services as s (s.slug)}
+				<a href="/services/{s.slug}/">{s.name}</a>
+			{/each}
+		</nav>
+		<div>
+			<p class="col-title">Elsewhere</p>
+			{#each socials as s (s.href)}
+				<a href={s.href} target="_blank" rel="noopener">{s.label}</a>
+			{/each}
+			<p class="addr">Northampton, United Kingdom<br />+44 795 562 4268</p>
 		</div>
 	</div>
 
-	<div class="container">
-		<p class="copyright">&copy; {year} TechGFX Technologies Limited. All rights reserved.</p>
+	<div class="giant" aria-hidden="true">TECHGFX</div>
+
+	<div class="container legal">
+		<span>© {year} TechGFX Technologies Limited</span>
+		<span>Designed &amp; built in-house</span>
 	</div>
 </footer>
 
 <style>
-	.footer {
-		border-top: 1px solid rgba(255, 255, 255, 0.08);
-		padding: 4rem 0 2rem;
-		margin-top: auto;
+	footer {
+		background: var(--ink);
+		color: var(--paper);
+		overflow: clip;
+		border-top: 1px solid rgba(242, 239, 234, 0.08);
 	}
 
-	.grid {
-		display: grid;
-		grid-template-columns: 1.4fr 1fr 1fr;
-		gap: 3rem;
-		margin-bottom: 3rem;
-	}
-
-	.brand-name {
-		font-size: 1.5rem;
-		font-weight: 700;
-		margin-bottom: 1rem;
-	}
-
-	.col h4 {
-		font-size: 1rem;
-		margin-bottom: 1.25rem;
-		color: var(--color-text);
-	}
-
-	.col ul {
-		list-style: none;
-		margin: 0;
-		padding: 0;
+	.cta-row {
+		padding-block: clamp(4rem, 9vw, 8rem) clamp(3rem, 6vw, 5rem);
 		display: flex;
 		flex-direction: column;
+		gap: 1.75rem;
+		align-items: flex-start;
+	}
+
+	.email-link {
+		display: inline-flex;
+		align-items: center;
 		gap: 0.75rem;
-	}
-
-	.col a {
-		color: var(--color-text-muted);
-		text-decoration: none;
-		transition: color 0.3s ease;
-	}
-
-	.col a:hover {
-		color: var(--color-primary);
-	}
-
-	.contact-list li {
-		color: var(--color-text-muted);
-	}
-
-	.socials {
-		display: flex;
-		gap: 1.25rem;
-		margin-top: 1.5rem;
-		flex-wrap: wrap;
-	}
-
-	.socials a {
-		font-size: 0.9rem;
+		font-size: clamp(1.2rem, 2.6vw, 2rem);
 		font-weight: 500;
+		letter-spacing: -0.02em;
+		text-decoration: none;
+		color: var(--accent);
+	}
+	.email-link .arrow {
+		transition: transform 0.45s var(--ease-out);
+	}
+	.email-link:hover .arrow {
+		transform: translateX(8px);
 	}
 
-	.copyright {
+	.cols {
+		display: grid;
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+		gap: 2rem;
+		padding-block: 2.5rem 4rem;
+		border-top: 1px solid rgba(242, 239, 234, 0.08);
+	}
+	.cols nav,
+	.cols div {
+		display: flex;
+		flex-direction: column;
+		gap: 0.65rem;
+	}
+	.col-title {
+		font-family: var(--font-mono);
+		font-size: 0.68rem;
+		text-transform: uppercase;
+		letter-spacing: 0.18em;
+		color: rgba(242, 239, 234, 0.45);
+		margin-bottom: 0.5rem;
+	}
+	.cols a {
+		text-decoration: none;
+		color: rgba(242, 239, 234, 0.75);
+		font-size: 0.95rem;
+		width: fit-content;
+		transition: color 0.35s var(--ease-out);
+	}
+	.cols a:hover {
+		color: var(--accent);
+	}
+	.addr {
+		margin-top: 1rem;
+		font-family: var(--font-mono);
+		font-size: 0.75rem;
+		line-height: 1.8;
+		color: rgba(242, 239, 234, 0.45);
+	}
+
+	/* viewport-filling wordmark, cropped at the baseline */
+	.giant {
+		font-weight: 700;
+		font-size: clamp(4rem, 16.5vw, 16rem);
+		letter-spacing: -0.045em;
+		line-height: 0.72;
 		text-align: center;
-		color: var(--color-text-muted);
-		font-size: 0.875rem;
-		margin: 0;
-		padding-top: 2rem;
-		border-top: 1px solid rgba(255, 255, 255, 0.05);
+		color: rgba(242, 239, 234, 0.08);
+		user-select: none;
+		transform: translateY(0.08em);
+		white-space: nowrap;
 	}
 
-	@media (max-width: 768px) {
-		.grid {
-			grid-template-columns: 1fr;
-			gap: 2.5rem;
+	.legal {
+		display: flex;
+		justify-content: space-between;
+		gap: 1rem;
+		flex-wrap: wrap;
+		padding-block: 1.5rem;
+		border-top: 1px solid rgba(242, 239, 234, 0.08);
+		font-family: var(--font-mono);
+		font-size: 0.7rem;
+		letter-spacing: 0.08em;
+		color: rgba(242, 239, 234, 0.4);
+	}
+
+	@media (max-width: 720px) {
+		.cols {
+			grid-template-columns: 1fr 1fr;
 		}
 	}
 </style>

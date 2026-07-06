@@ -1,177 +1,295 @@
-@import '@fontsource/outfit/300.css';
-@import '@fontsource/outfit/400.css';
-@import '@fontsource/outfit/500.css';
-@import '@fontsource/outfit/600.css';
-@import '@fontsource/outfit/700.css';
+@import '@fontsource/space-grotesk/400.css';
+@import '@fontsource/space-grotesk/500.css';
+@import '@fontsource/space-grotesk/700.css';
+@import '@fontsource/instrument-serif/400-italic.css';
+@import '@fontsource/space-mono/400.css';
+@import '@fontsource/space-mono/700.css';
+
+/* ------------------------------------------------------------------
+   TechGFX design system — "Shipped."
+   Monochromatic tension: warm ink, warm paper, one chartreuse accent.
+   ------------------------------------------------------------------ */
 
 :root {
-	/* Modern Dark Theme Palette */
-	--color-bg: #0a0a0a;
-	--color-bg-secondary: #111111;
-	--color-bg-tertiary: #1a1a1a;
-	
-	--color-text: #ffffff;
-	--color-text-muted: #a1a1aa;
-	
-	--color-primary: #6366f1;
-	--color-secondary: #ec4899;
-	--color-accent: #8b5cf6;
-	
-	--gradient-primary: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
-	--gradient-glow: radial-gradient(circle at center, rgba(99, 102, 241, 0.15) 0%, transparent 70%);
-	
-	--font-main: 'Outfit', sans-serif;
-	
-	--radius-sm: 0.5rem;
-	--radius-md: 0.75rem;
-	--radius-lg: 1rem;
-	--radius-full: 9999px;
-	
-	--shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-	--shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-	--shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-	--shadow-glow: 0 0 20px rgba(99, 102, 241, 0.3);
+	--ink: #0b0b0d;
+	--ink-2: #131316;
+	--ink-3: #1c1c20;
+	--paper: #f2efea;
+	--paper-2: #e9e5dd;
+	--accent: #d9f45b;
+	--accent-dim: #b8d43e;
+
+	--font-display: 'Space Grotesk', sans-serif;
+	--font-serif: 'Instrument Serif', serif;
+	--font-mono: 'Space Mono', monospace;
+
+	/* custom curves only — ease/linear are banned */
+	--ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+	--ease-in-out: cubic-bezier(0.87, 0, 0.13, 1);
+	--ease-soft: cubic-bezier(0.25, 1, 0.5, 1);
+
+	--container: 1480px;
+	--gutter: clamp(20px, 4vw, 72px);
+
+	/* dark theme is the default chapter */
+	--bg: var(--ink);
+	--fg: var(--paper);
+	--fg-60: rgba(242, 239, 234, 0.62);
+	--fg-40: rgba(242, 239, 234, 0.4);
+	--line: rgba(242, 239, 234, 0.14);
+	--surface: var(--ink-2);
 }
 
-html {
-	font-family: var(--font-main);
-	background-color: var(--color-bg);
-	color: var(--color-text);
-	scroll-behavior: smooth;
-}
-
-body {
-	margin: 0;
-	min-height: 100vh;
-	overflow-x: hidden;
-	background-image: 
-		radial-gradient(circle at 15% 50%, rgba(99, 102, 241, 0.08), transparent 25%),
-		radial-gradient(circle at 85% 30%, rgba(236, 72, 153, 0.08), transparent 25%);
-}
-
-/* Typography */
-h1, h2, h3, h4, h5, h6 {
-	margin: 0;
-	line-height: 1.2;
-	font-weight: 700;
-	letter-spacing: -0.02em;
-}
-
-h1 {
-	font-size: clamp(2.5rem, 5vw, 4rem);
-	background: var(--gradient-primary);
-	-webkit-background-clip: text;
-	-webkit-text-fill-color: transparent;
-	background-clip: text;
-}
-
-p {
-	line-height: 1.6;
-	color: var(--color-text-muted);
-	margin-bottom: 1rem;
-}
-
-/* Utilities */
-.container {
-	width: 100%;
-	max-width: 1200px;
-	margin: 0 auto;
-	padding: 0 1.5rem;
-}
-
-.glass {
-	background: rgba(255, 255, 255, 0.03);
-	backdrop-filter: blur(10px);
-	-webkit-backdrop-filter: blur(10px);
-	border: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-.btn {
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	padding: 0.75rem 1.5rem;
-	border-radius: var(--radius-full);
-	font-weight: 600;
-	text-decoration: none;
-	transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-	border: none;
-	cursor: pointer;
-	font-size: 1rem;
-}
-
-.btn-primary {
-	background: var(--gradient-primary);
-	color: white;
-	box-shadow: var(--shadow-glow);
-}
-
-.btn-primary:hover {
-	transform: translateY(-2px);
-	box-shadow: 0 0 30px rgba(99, 102, 241, 0.5);
-}
-
-/* Animations */
-@keyframes float {
-	0%, 100% { transform: translateY(0); }
-	50% { transform: translateY(-10px); }
-}
-
-.animate-float {
-	animation: float 6s ease-in-out infinite;
-}
-
-@keyframes fadeIn {
-	from { opacity: 0; transform: translateY(20px); }
-	to { opacity: 1; transform: translateY(0); }
-}
-
-.fade-in {
-	animation: fadeIn 0.8s ease-out forwards;
-}
-
-/* Shared layout helpers */
-.section {
-	padding: clamp(4rem, 8vw, 7rem) 0;
-	position: relative;
-}
-
-.gradient-text {
-	background: var(--gradient-primary);
-	-webkit-background-clip: text;
-	-webkit-text-fill-color: transparent;
-	background-clip: text;
-}
-
-.btn-secondary {
-	background: rgba(255, 255, 255, 0.05);
-	color: var(--color-text);
-	border: 1px solid rgba(255, 255, 255, 0.12);
-}
-
-.btn-secondary:hover {
-	transform: translateY(-2px);
-	border-color: rgba(255, 255, 255, 0.3);
-	background: rgba(255, 255, 255, 0.08);
-}
-
-.btn:disabled {
-	opacity: 0.4;
-	cursor: not-allowed;
-	transform: none !important;
-	box-shadow: none !important;
-}
-
-a {
-	color: inherit;
+/* light chapters */
+[data-theme='light'] {
+	--bg: var(--paper);
+	--fg: var(--ink);
+	--fg-60: rgba(11, 11, 13, 0.64);
+	--fg-40: rgba(11, 11, 13, 0.42);
+	--line: rgba(11, 11, 13, 0.14);
+	--surface: var(--paper-2);
 }
 
 * {
 	box-sizing: border-box;
 }
 
+html {
+	font-family: var(--font-display);
+	background-color: var(--ink);
+	color: var(--paper);
+	-webkit-font-smoothing: antialiased;
+}
+
+/* Lenis owns scrolling */
+html.lenis,
+html.lenis body {
+	height: auto;
+}
+.lenis.lenis-smooth {
+	scroll-behavior: auto !important;
+}
+
+body {
+	margin: 0;
+	min-height: 100vh;
+	overflow-x: clip;
+	font-size: 1.0625rem;
+	line-height: 1.6;
+}
+
+::selection {
+	background: var(--accent);
+	color: var(--ink);
+}
+
+:focus-visible {
+	outline: 2px solid var(--accent);
+	outline-offset: 3px;
+	border-radius: 2px;
+}
+
+h1,
+h2,
+h3,
+h4 {
+	margin: 0;
+	font-weight: 500;
+	line-height: 1.02;
+	letter-spacing: -0.03em;
+}
+
+p {
+	margin: 0;
+}
+
+a {
+	color: inherit;
+}
+
+img {
+	max-width: 100%;
+	display: block;
+}
+
+button {
+	font-family: inherit;
+	cursor: pointer;
+}
+
+/* ---------- primitives ---------- */
+
+.container {
+	max-width: var(--container);
+	margin-inline: auto;
+	padding-inline: var(--gutter);
+}
+
+.section {
+	position: relative;
+	background: var(--bg);
+	color: var(--fg);
+}
+
+/* mono eyebrow label: "01 — SERVICES" */
+.label {
+	font-family: var(--font-mono);
+	font-size: 0.72rem;
+	font-weight: 400;
+	text-transform: uppercase;
+	letter-spacing: 0.18em;
+	color: var(--fg-60);
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+}
+.label::before {
+	content: '';
+	width: 2rem;
+	height: 1px;
+	background: var(--accent);
+	flex-shrink: 0;
+}
+
+/* display type — the design IS the type */
+.display {
+	font-size: clamp(3.2rem, 10vw, 10.5rem);
+	line-height: 0.94;
+	letter-spacing: -0.04em;
+	font-weight: 500;
+	text-wrap: balance;
+}
+
+.h2 {
+	font-size: clamp(2.4rem, 5.5vw, 5.25rem);
+	letter-spacing: -0.035em;
+	line-height: 0.98;
+	text-wrap: balance;
+}
+
+.serif-accent {
+	font-family: var(--font-serif);
+	font-style: italic;
+	font-weight: 400;
+	letter-spacing: -0.01em;
+}
+
+.lead {
+	font-size: clamp(1.05rem, 1.4vw, 1.3rem);
+	line-height: 1.55;
+	color: var(--fg-60);
+	max-width: 34em;
+}
+
+/* ---------- buttons ---------- */
+
+.btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.6rem;
+	padding: 1.05rem 2rem;
+	border-radius: 999px;
+	font-family: var(--font-display);
+	font-size: 0.95rem;
+	font-weight: 500;
+	letter-spacing: 0.01em;
+	text-decoration: none;
+	border: 1px solid transparent;
+	transition:
+		background-color 0.45s var(--ease-out),
+		color 0.45s var(--ease-out),
+		border-color 0.45s var(--ease-out),
+		transform 0.45s var(--ease-out);
+	will-change: transform;
+}
+
+.btn-solid {
+	background: var(--accent);
+	color: var(--ink);
+}
+.btn-solid:hover {
+	background: var(--fg);
+	color: var(--bg);
+}
+
+.btn-ghost {
+	background: transparent;
+	color: var(--fg);
+	border-color: var(--line);
+}
+.btn-ghost:hover {
+	border-color: var(--fg);
+}
+
+.btn:disabled {
+	opacity: 0.35;
+	pointer-events: none;
+}
+
+/* arrow that nudges on hover */
+.btn .arrow {
+	display: inline-block;
+	transition: transform 0.45s var(--ease-out);
+}
+.btn:hover .arrow {
+	transform: translateX(4px);
+}
+
+/* ---------- text reveal (used with GSAP SplitText) ---------- */
+
+.reveal-lines .line {
+	overflow: clip;
+}
+
+/* ---------- forms ---------- */
+
+.field {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+}
+.field label {
+	font-family: var(--font-mono);
+	font-size: 0.7rem;
+	text-transform: uppercase;
+	letter-spacing: 0.16em;
+	color: var(--fg-60);
+}
+.field input,
+.field select,
+.field textarea {
+	font-family: var(--font-display);
+	font-size: 1rem;
+	color: var(--fg);
+	background: transparent;
+	border: none;
+	border-bottom: 1px solid var(--line);
+	padding: 0.85rem 0;
+	border-radius: 0;
+	transition: border-color 0.4s var(--ease-out);
+	appearance: none;
+}
+.field input:focus,
+.field select:focus,
+.field textarea:focus {
+	outline: none;
+	border-bottom-color: var(--accent);
+}
+.field textarea {
+	resize: vertical;
+	min-height: 8rem;
+}
+.field select option {
+	background: var(--ink-2);
+	color: var(--paper);
+}
+
 @media (prefers-reduced-motion: reduce) {
-	html {
-		scroll-behavior: auto;
+	*,
+	*::before,
+	*::after {
+		animation-duration: 0.01ms !important;
+		transition-duration: 0.01ms !important;
 	}
 }

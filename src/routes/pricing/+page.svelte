@@ -2,10 +2,10 @@
 	import { onMount, untrack } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { services } from '$lib/data/services.js';
+	import { gsap as motionGsap, revealLines, revealOnScroll, magnetic, reducedMotion, EASE } from '$lib/motion.js';
 
 	/** @type {Set<string>} */
 	let selected = $state(new Set());
-	let totalEl;
 	let displayedTotal = $state(0);
 
 	const selectedServices = $derived(services.filter((s) => selected.has(s.slug)));
@@ -31,30 +31,27 @@
 	/** @type {any} */
 	let gsapInstance;
 
+	/** @type {HTMLElement} */
+	let heroH1;
+
 	onMount(() => {
-		(async () => {
-			const gsap = (await import('gsap')).default;
-			gsapInstance = gsap;
+		const params = new URLSearchParams(window.location.search);
+		const addSlug = params.get('add');
+		if (addSlug && services.some((s) => s.slug === addSlug)) {
+			selected = new Set([addSlug]);
+		}
 
-			const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+		if (reducedMotion()) return;
 
-			gsap.from('.pricing-hero-anim', {
-				opacity: 0,
-				y: reduceMotion ? 0 : 30,
-				duration: reduceMotion ? 0.01 : 0.8,
-				stagger: reduceMotion ? 0 : 0.1,
-				ease: 'power3.out'
-			});
+		gsapInstance = motionGsap;
 
-			gsap.from('.service-select-card', {
-				opacity: 0,
-				y: reduceMotion ? 0 : 24,
-				duration: reduceMotion ? 0.01 : 0.6,
-				stagger: reduceMotion ? 0 : 0.07,
-				delay: reduceMotion ? 0 : 0.2,
-				ease: 'power3.out'
-			});
-		})();
+		const tl = motionGsap.timeline({ delay: 0.1 });
+		tl.from('.hero .label', { opacity: 0, y: 16, duration: 0.8, ease: EASE }, 0);
+		revealLines(heroH1, { delay: 0.15, stagger: 0.1 });
+		tl.from('.hero .lead', { opacity: 0, y: 20, duration: 0.9, ease: EASE }, 0.5);
+
+		revealOnScroll('.service-row', '.services-col', { y: 24, stagger: 0.05 });
+		motionGsap.from('.summary-panel', { opacity: 0, y: 24, duration: 0.9, delay: 0.3, ease: EASE });
 	});
 
 	$effect(() => {
@@ -77,54 +74,57 @@
 </script>
 
 <svelte:head>
-	<title>Pricing & Quote Builder — TechGFX Technologies</title>
+	<title>Pricing & Quote Builder — TechGFX</title>
 	<meta
 		name="description"
-		content="Select the services you need and get an instant indicative quote from TechGFX Technologies."
+		content="Select the services you need and get an instant indicative quote from TechGFX."
 	/>
 </svelte:head>
 
-<section class="pricing-hero">
-	<div class="container">
-		<h1 class="pricing-hero-anim">Build your quote</h1>
-		<p class="pricing-hero-anim subtitle">
-			Pick the services you're interested in. We'll put together an indicative price instantly —
-			no forms, no waiting.
+<section class="hero section">
+	<div class="container hero-grid">
+		<p class="label">Quote builder</p>
+		<h1 class="display" bind:this={heroH1}>
+			Pick. Sum. <span class="serif-accent">Ship.</span>
+		</h1>
+		<p class="lead">
+			Choose the services you need. We'll total an indicative price instantly — no forms, no
+			waiting.
 		</p>
 	</div>
 </section>
 
-<section class="section pricing-section">
+<section class="section chapter">
 	<div class="container pricing-layout">
 		<div class="services-col">
 			{#each services as service (service.slug)}
-				<label class="service-select-card glass" class:active={selected.has(service.slug)}>
+				<label class="service-row" class:active={selected.has(service.slug)}>
 					<input
 						type="checkbox"
+						class="visually-hidden"
 						checked={selected.has(service.slug)}
 						onchange={() => toggle(service.slug)}
 					/>
-					<span class="checkbox-visual" aria-hidden="true"></span>
-					<span class="service-select-icon">{service.icon}</span>
-					<span class="service-select-body">
-						<span class="service-select-name">{service.name}</span>
-						<span class="service-select-tagline">{service.tagline}</span>
+					<span class="indicator" aria-hidden="true"></span>
+					<span class="service-body">
+						<span class="service-name">{service.short}</span>
+						<span class="service-full">{service.name}</span>
 					</span>
-					<span class="service-select-price">£{service.price.toLocaleString()}</span>
+					<span class="service-price">from £{service.price.toLocaleString()}</span>
 				</label>
 			{/each}
 		</div>
 
-		<aside class="summary-panel glass">
-			<h2>Your quote</h2>
+		<aside class="summary-panel">
+			<p class="label">Your quote</p>
 
 			{#if selectedServices.length === 0}
-				<p class="empty-summary">No services selected yet. Choose from the list.</p>
+				<p class="empty-summary">Nothing selected yet — choose from the list.</p>
 			{:else}
 				<ul class="summary-list">
 					{#each selectedServices as s (s.slug)}
 						<li>
-							<span>{s.name}</span>
+							<span>{s.short}</span>
 							<span>£{s.price.toLocaleString()}</span>
 						</li>
 					{/each}
@@ -132,211 +132,220 @@
 			{/if}
 
 			<div class="summary-total">
-				<span>Total</span>
-				<span class="total-value" bind:this={totalEl}>£{displayedTotal.toLocaleString()}</span>
+				<span class="total-label">Total</span>
+				<span class="total-value">£{displayedTotal.toLocaleString()}</span>
 			</div>
 
 			<p class="summary-note">
 				Indicative starting prices — final quote confirmed after scoping call.
 			</p>
 
-			<button class="btn btn-primary full-width" disabled={selected.size === 0} onclick={proceed}>
-				Proceed to checkout
+			<button
+				type="button"
+				class="btn btn-solid full-width"
+				disabled={selected.size === 0}
+				use:magnetic
+				onclick={proceed}
+			>
+				Proceed to checkout <span class="arrow">→</span>
 			</button>
 		</aside>
 	</div>
 </section>
 
 <style>
-	.pricing-hero {
-		padding: 9rem 0 2rem;
-		text-align: center;
+	.hero {
+		padding-top: clamp(8rem, 16vh, 11rem);
+		padding-bottom: clamp(3rem, 6vh, 5rem);
+	}
+	.hero-grid {
+		display: flex;
+		flex-direction: column;
+		gap: clamp(1.25rem, 2.5vh, 2rem);
 	}
 
-	.pricing-hero h1 {
-		font-size: clamp(2.25rem, 5vw, 3.5rem);
-		margin-bottom: 1rem;
-	}
-
-	.subtitle {
-		font-size: 1.15rem;
-		max-width: 560px;
-		margin: 0 auto;
+	.chapter {
+		padding-block: 0 clamp(5rem, 11vw, 8rem);
 	}
 
 	.pricing-layout {
 		display: grid;
-		grid-template-columns: 1.6fr 1fr;
-		gap: 2.5rem;
+		grid-template-columns: 1fr 380px;
+		gap: clamp(2rem, 4vw, 4rem);
 		align-items: start;
 	}
 
+	/* ---------- services list ---------- */
 	.services-col {
 		display: flex;
 		flex-direction: column;
-		gap: 1rem;
+		border-top: 1px solid var(--line);
 	}
 
-	.service-select-card {
-		display: flex;
-		align-items: center;
-		gap: 1rem;
-		padding: 1.25rem 1.5rem;
-		border-radius: var(--radius-lg);
-		cursor: pointer;
-		transition: all 0.3s ease;
-		position: relative;
-	}
-
-	.service-select-card:hover {
-		border-color: rgba(99, 102, 241, 0.3);
-	}
-
-	.service-select-card.active {
-		border-color: var(--color-primary);
-		box-shadow: 0 0 0 1px var(--color-primary), var(--shadow-glow);
-	}
-
-	.service-select-card input {
+	.visually-hidden {
 		position: absolute;
-		opacity: 0;
 		width: 1px;
 		height: 1px;
-	}
-
-	.checkbox-visual {
-		width: 22px;
-		height: 22px;
-		border-radius: var(--radius-sm);
-		border: 2px solid rgba(255, 255, 255, 0.25);
-		flex-shrink: 0;
-		position: relative;
-		transition: all 0.25s ease;
-	}
-
-	.service-select-card.active .checkbox-visual {
-		background: var(--gradient-primary);
-		border-color: transparent;
-	}
-
-	.service-select-card.active .checkbox-visual::after {
-		content: '\2713';
-		position: absolute;
-		inset: 0;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		color: white;
-		font-size: 0.8rem;
-	}
-
-	.service-select-icon {
-		font-size: 1.75rem;
-		flex-shrink: 0;
-	}
-
-	.service-select-body {
-		display: flex;
-		flex-direction: column;
-		gap: 0.15rem;
-		flex: 1;
-		min-width: 0;
-	}
-
-	.service-select-name {
-		font-weight: 600;
-	}
-
-	.service-select-tagline {
-		font-size: 0.875rem;
-		color: var(--color-text-muted);
-	}
-
-	.service-select-price {
-		font-weight: 700;
-		color: var(--color-primary);
+		overflow: hidden;
+		clip: rect(0 0 0 0);
 		white-space: nowrap;
 	}
 
-	.summary-panel {
-		position: sticky;
-		top: 6.5rem;
-		padding: 2rem;
-		border-radius: var(--radius-lg);
+	.service-row {
+		position: relative;
+		display: grid;
+		grid-template-columns: 18px 1fr auto;
+		align-items: center;
+		gap: 1.5rem;
+		padding: clamp(1.4rem, 3vw, 2rem) clamp(0.5rem, 2vw, 1.25rem);
+		border-bottom: 1px solid var(--line);
+		cursor: pointer;
+		transition: background-color 0.35s var(--ease-out);
+	}
+	.service-row:hover,
+	.service-row.active {
+		background: var(--surface);
 	}
 
-	.summary-panel h2 {
-		font-size: 1.4rem;
-		margin-bottom: 1.25rem;
+	.indicator {
+		width: 18px;
+		height: 18px;
+		border: 1px solid var(--line);
+		flex-shrink: 0;
+		position: relative;
+		transition: border-color 0.3s var(--ease-out);
+	}
+	.service-row.active .indicator {
+		background: var(--accent);
+		border-color: var(--accent);
+	}
+	.service-row.active .indicator::after {
+		content: '';
+		position: absolute;
+		left: 5px;
+		top: 1px;
+		width: 5px;
+		height: 9px;
+		border: solid var(--ink);
+		border-width: 0 2px 2px 0;
+		transform: rotate(45deg);
+	}
+
+	.service-body {
+		display: flex;
+		flex-direction: column;
+		gap: 0.3rem;
+		min-width: 0;
+	}
+	.service-name {
+		font-size: clamp(1.4rem, 3vw, 1.7rem);
+		font-weight: 500;
+		letter-spacing: -0.02em;
+	}
+	.service-full {
+		font-family: var(--font-mono);
+		font-size: 0.7rem;
+		text-transform: uppercase;
+		letter-spacing: 0.08em;
+		color: var(--fg-40);
+	}
+
+	.service-price {
+		font-family: var(--font-mono);
+		font-size: 0.85rem;
+		letter-spacing: 0.04em;
+		color: var(--fg-60);
+		white-space: nowrap;
+	}
+
+	/* ---------- summary panel ---------- */
+	.summary-panel {
+		position: sticky;
+		top: 100px;
+		display: flex;
+		flex-direction: column;
+		gap: 1.5rem;
+		padding: clamp(1.75rem, 3vw, 2.5rem);
+		border: 1px solid var(--line);
 	}
 
 	.empty-summary {
-		color: var(--color-text-muted);
 		font-size: 0.95rem;
+		color: var(--fg-60);
 	}
 
 	.summary-list {
 		list-style: none;
-		margin: 0 0 1.25rem;
+		margin: 0;
 		padding: 0;
 		display: flex;
 		flex-direction: column;
-		gap: 0.75rem;
 	}
-
 	.summary-list li {
 		display: flex;
 		justify-content: space-between;
-		font-size: 0.9rem;
-		color: var(--color-text-muted);
+		gap: 1rem;
+		padding-block: 0.9rem;
+		border-bottom: 1px solid var(--line);
+		font-size: 0.95rem;
+	}
+	.summary-list li span:last-child {
+		font-family: var(--font-mono);
+		font-size: 0.82rem;
+		color: var(--fg-60);
+		white-space: nowrap;
 	}
 
 	.summary-total {
 		display: flex;
 		justify-content: space-between;
-		align-items: center;
-		padding-top: 1.25rem;
-		border-top: 1px solid rgba(255, 255, 255, 0.1);
-		margin-bottom: 0.75rem;
-		font-weight: 600;
+		align-items: baseline;
+		gap: 1rem;
+		padding-top: 0.5rem;
 	}
-
+	.total-label {
+		font-family: var(--font-mono);
+		font-size: 0.75rem;
+		text-transform: uppercase;
+		letter-spacing: 0.14em;
+		color: var(--fg-60);
+	}
 	.total-value {
-		font-size: 1.75rem;
-		font-weight: 700;
-		background: var(--gradient-primary);
-		-webkit-background-clip: text;
-		-webkit-text-fill-color: transparent;
-		background-clip: text;
+		font-size: clamp(2.5rem, 5vw, 4rem);
+		font-weight: 500;
+		letter-spacing: -0.03em;
+		color: var(--accent);
+		font-variant-numeric: tabular-nums;
 	}
 
 	.summary-note {
-		font-size: 0.8rem;
-		color: var(--color-text-muted);
-		margin-bottom: 1.5rem;
+		font-family: var(--font-mono);
+		font-size: 0.72rem;
+		line-height: 1.6;
+		color: var(--fg-40);
 	}
 
 	.full-width {
 		width: 100%;
 	}
 
+	/* ---------- responsive ---------- */
 	@media (max-width: 900px) {
 		.pricing-layout {
 			grid-template-columns: 1fr;
 		}
-
 		.summary-panel {
 			position: static;
 		}
 	}
 
 	@media (max-width: 480px) {
-		.service-select-card {
-			flex-wrap: wrap;
+		.service-row {
+			grid-template-columns: 16px 1fr;
+			row-gap: 0.6rem;
 		}
-
-		.service-select-price {
-			margin-left: auto;
+		.service-price {
+			grid-column: 2;
 		}
 	}
 </style>

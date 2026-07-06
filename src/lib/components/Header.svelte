@@ -1,218 +1,245 @@
 <script>
-	import { onMount } from 'svelte';
+	import { page } from '$app/state';
+	import { magnetic } from '$lib/motion.js';
 
 	let scrolled = $state(false);
-	let menuOpen = $state(false);
+	let open = $state(false);
 
-	const navLinks = [
-		{ label: 'Services', href: '/#services' },
-		{ label: 'Work', href: '/#work' },
-		{ label: 'Pricing', href: '/pricing/' },
-		{ label: 'Contact', href: '/contact/' }
+	const links = [
+		{ href: '/#services', text: 'Services' },
+		{ href: '/#work', text: 'Work' },
+		{ href: '/pricing/', text: 'Pricing' },
+		{ href: '/contact/', text: 'Contact' }
 	];
 
-	onMount(() => {
-		const onScroll = () => {
-			scrolled = window.scrollY > 50;
-		};
-		onScroll();
-		window.addEventListener('scroll', onScroll, { passive: true });
-		return () => window.removeEventListener('scroll', onScroll);
+	$effect(() => {
+		// close the overlay on navigation
+		page.url.pathname;
+		open = false;
 	});
 
-	function closeMenu() {
-		menuOpen = false;
+	function onScroll() {
+		scrolled = window.scrollY > 40;
 	}
 </script>
 
-<header class="header glass" class:scrolled>
-	<div class="container bar">
-		<a href="/" class="logo" onclick={closeMenu}>
-			<img src="/favicon.png" alt="TechGFX" class="logo-image" />
-			<span class="logo-text gradient-text">TechGFX</span>
+<svelte:window onscroll={onScroll} />
+
+<header class:scrolled class:open>
+	<div class="bar">
+		<a href="/" class="wordmark" aria-label="TechGFX home">
+			TechGFX<sup>®</sup>
 		</a>
 
-		<nav class="nav-links">
-			{#each navLinks as link}
-				<a href={link.href}>{link.label}</a>
+		<nav class="desktop-nav" aria-label="Primary">
+			{#each links as link (link.href)}
+				<a href={link.href}>{link.text}</a>
 			{/each}
 		</nav>
 
-		<button
-			class="hamburger"
-			class:open={menuOpen}
-			aria-label="Toggle menu"
-			aria-expanded={menuOpen}
-			onclick={() => (menuOpen = !menuOpen)}
-		>
-			<span></span>
-			<span></span>
-			<span></span>
-		</button>
+		<div class="right">
+			<a href="/pricing/" class="btn btn-solid cta" use:magnetic>Start a project</a>
+			<button
+				class="burger"
+				aria-expanded={open}
+				aria-label={open ? 'Close menu' : 'Open menu'}
+				onclick={() => (open = !open)}
+			>
+				<span></span>
+				<span></span>
+			</button>
+		</div>
+	</div>
+
+	<div class="overlay" aria-hidden={!open}>
+		<nav aria-label="Mobile">
+			{#each links as link, i (link.href)}
+				<a href={link.href} style="transition-delay: {open ? 80 + i * 60 : 0}ms">{link.text}</a>
+			{/each}
+		</nav>
+		<div class="overlay-foot">
+			<a href="mailto:info@techgfxlimited.com">info@techgfxlimited.com</a>
+			<span>Northampton, UK</span>
+		</div>
 	</div>
 </header>
 
-{#if menuOpen}
-	<div class="mobile-menu">
-		<nav>
-			{#each navLinks as link}
-				<a href={link.href} onclick={closeMenu}>{link.label}</a>
-			{/each}
-		</nav>
-	</div>
-{/if}
-
 <style>
-	.header {
+	header {
 		position: fixed;
-		top: 0;
-		left: 0;
-		right: 0;
-		z-index: 1000;
-		background: transparent;
-		border: none;
-		border-bottom: 1px solid transparent;
-		transition:
-			background 0.4s cubic-bezier(0.4, 0, 0.2, 1),
-			border-color 0.4s cubic-bezier(0.4, 0, 0.2, 1),
-			backdrop-filter 0.4s ease;
-	}
-
-	.header.scrolled {
-		background: rgba(10, 10, 10, 0.75);
-		backdrop-filter: blur(20px);
-		-webkit-backdrop-filter: blur(20px);
-		border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+		inset: 0 0 auto 0;
+		z-index: 100;
 	}
 
 	.bar {
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		padding-top: 1.1rem;
-		padding-bottom: 1.1rem;
+		padding: 0 var(--gutter);
+		height: 76px;
+		transition:
+			background-color 0.5s var(--ease-out),
+			border-color 0.5s var(--ease-out);
+		border-bottom: 1px solid transparent;
 	}
 
-	.logo {
-		display: flex;
-		align-items: center;
-		gap: 0.65rem;
-		text-decoration: none;
+	.scrolled .bar {
+		background: rgba(11, 11, 13, 0.72);
+		backdrop-filter: blur(16px);
+		-webkit-backdrop-filter: blur(16px);
+		border-bottom-color: rgba(242, 239, 234, 0.08);
 	}
 
-	.logo-image {
-		height: 34px;
-		width: auto;
-	}
-
-	.logo-text {
-		font-size: 1.35rem;
+	.wordmark {
 		font-weight: 700;
+		font-size: 1.25rem;
+		letter-spacing: -0.02em;
+		text-decoration: none;
+		color: var(--paper);
+		z-index: 2;
+		position: relative;
+	}
+	.wordmark sup {
+		font-family: var(--font-mono);
+		font-size: 0.55em;
+		font-weight: 400;
+		color: var(--accent);
+		margin-left: 2px;
 	}
 
-	.nav-links {
+	.desktop-nav {
 		display: flex;
 		gap: 2.25rem;
 	}
-
-	.nav-links a {
-		color: var(--color-text);
+	.desktop-nav a {
+		font-family: var(--font-mono);
+		font-size: 0.72rem;
+		text-transform: uppercase;
+		letter-spacing: 0.16em;
 		text-decoration: none;
-		font-weight: 500;
-		font-size: 0.95rem;
+		color: rgba(242, 239, 234, 0.7);
 		position: relative;
-		transition: color 0.3s ease;
+		transition: color 0.35s var(--ease-out);
 	}
-
-	.nav-links a::after {
+	.desktop-nav a::after {
 		content: '';
 		position: absolute;
-		bottom: -4px;
 		left: 0;
-		width: 0;
-		height: 2px;
-		background: var(--gradient-primary);
-		transition: width 0.3s ease;
-	}
-
-	.nav-links a:hover {
-		color: var(--color-primary);
-	}
-
-	.nav-links a:hover::after {
+		bottom: -5px;
+		height: 1px;
 		width: 100%;
+		background: var(--accent);
+		transform: scaleX(0);
+		transform-origin: right;
+		transition: transform 0.45s var(--ease-out);
+	}
+	.desktop-nav a:hover {
+		color: var(--paper);
+	}
+	.desktop-nav a:hover::after {
+		transform: scaleX(1);
+		transform-origin: left;
 	}
 
-	.hamburger {
+	.right {
+		display: flex;
+		align-items: center;
+		gap: 1rem;
+		z-index: 2;
+		position: relative;
+	}
+
+	.cta {
+		padding: 0.75rem 1.5rem;
+		font-size: 0.85rem;
+	}
+
+	.burger {
 		display: none;
 		flex-direction: column;
 		justify-content: center;
-		align-items: center;
-		gap: 5px;
-		width: 42px;
-		height: 42px;
-		background: rgba(255, 255, 255, 0.05);
-		border: 1px solid rgba(255, 255, 255, 0.1);
-		border-radius: var(--radius-md);
-		cursor: pointer;
+		gap: 6px;
+		width: 44px;
+		height: 44px;
+		background: none;
+		border: 1px solid rgba(242, 239, 234, 0.2);
+		border-radius: 999px;
+		padding: 0 11px;
 	}
-
-	.hamburger span {
+	.burger span {
 		display: block;
-		width: 18px;
-		height: 2px;
-		background: var(--color-text);
-		transition: all 0.3s ease;
+		height: 1.5px;
+		background: var(--paper);
+		transition: transform 0.45s var(--ease-out);
+	}
+	.open .burger span:first-child {
+		transform: translateY(3.75px) rotate(45deg);
+	}
+	.open .burger span:last-child {
+		transform: translateY(-3.75px) rotate(-45deg);
 	}
 
-	.hamburger.open span:nth-child(1) {
-		transform: translateY(7px) rotate(45deg);
-	}
-
-	.hamburger.open span:nth-child(2) {
-		opacity: 0;
-	}
-
-	.hamburger.open span:nth-child(3) {
-		transform: translateY(-7px) rotate(-45deg);
-	}
-
-	.mobile-menu {
+	/* fullscreen mobile overlay */
+	.overlay {
 		position: fixed;
 		inset: 0;
-		z-index: 999;
-		background: rgba(10, 10, 10, 0.98);
-		backdrop-filter: blur(20px);
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		animation: fadeIn 0.25s ease-out;
-	}
-
-	.mobile-menu nav {
+		background: var(--ink);
 		display: flex;
 		flex-direction: column;
-		gap: 2rem;
-		text-align: center;
+		justify-content: space-between;
+		padding: 8rem var(--gutter) 3rem;
+		clip-path: inset(0 0 100% 0);
+		transition:
+			clip-path 0.7s var(--ease-in-out),
+			visibility 0s 0.7s;
+		visibility: hidden;
 	}
-
-	.mobile-menu a {
-		color: var(--color-text);
+	.open .overlay {
+		clip-path: inset(0 0 0% 0);
+		visibility: visible;
+		transition: clip-path 0.7s var(--ease-in-out);
+	}
+	.overlay nav {
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+	}
+	.overlay nav a {
+		font-size: clamp(2.6rem, 10vw, 4rem);
+		font-weight: 500;
+		letter-spacing: -0.03em;
 		text-decoration: none;
-		font-size: 1.75rem;
-		font-weight: 600;
+		color: var(--paper);
+		opacity: 0;
+		transform: translateY(24px);
+		transition:
+			opacity 0.6s var(--ease-out),
+			transform 0.6s var(--ease-out);
+	}
+	.open .overlay nav a {
+		opacity: 1;
+		transform: translateY(0);
+	}
+	.overlay-foot {
+		display: flex;
+		flex-direction: column;
+		gap: 0.35rem;
+		font-family: var(--font-mono);
+		font-size: 0.75rem;
+		letter-spacing: 0.1em;
+		color: rgba(242, 239, 234, 0.55);
+	}
+	.overlay-foot a {
+		color: var(--accent);
+		text-decoration: none;
 	}
 
-	.mobile-menu a:hover {
-		color: var(--color-primary);
-	}
-
-	@media (max-width: 768px) {
-		.nav-links {
+	@media (max-width: 860px) {
+		.desktop-nav,
+		.cta {
 			display: none;
 		}
-
-		.hamburger {
+		.burger {
 			display: flex;
 		}
 	}
